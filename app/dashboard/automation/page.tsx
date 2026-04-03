@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Save } from 'lucide-react'
-import { cropPresets, CropPreset } from '@/lib/crop-presets'
+import { Save, ChevronDown } from 'lucide-react'
+import { cropPresets } from '@/lib/crop-presets'
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList, CommandInput } from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 interface ControlValues {
   tdsMin: number
@@ -14,7 +16,6 @@ interface ControlValues {
   pump1Duration: number
   pump2Duration: number
   pump3Duration: number
-  autoMode: boolean
 }
 
 export default function AutomationPage() {
@@ -27,12 +28,13 @@ export default function AutomationPage() {
     pump1Duration: 30,
     pump2Duration: 45,
     pump3Duration: 60,
-    autoMode: true,
   })
 
   const [selectedCrop, setSelectedCrop] = useState('')
   const [presetMessage, setPresetMessage] = useState('')
   const [savedMessage, setSavedMessage] = useState('')
+  const [cropSearch, setCropSearch] = useState('')
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
   const applyCropPreset = (presetName: string) => {
     const preset = cropPresets.find((p) => p.name === presetName)
@@ -61,10 +63,6 @@ export default function AutomationPage() {
     setControls((prev) => ({ ...prev, [key]: value }))
   }
 
-  const handleToggleAutoMode = () => {
-    setControls((prev) => ({ ...prev, autoMode: !prev.autoMode }))
-  }
-
   const handleSave = () => {
     setSavedMessage('Settings saved successfully!')
     setTimeout(() => setSavedMessage(''), 3000)
@@ -75,9 +73,9 @@ export default function AutomationPage() {
     { label: 'TDS Max (ppm)', key: 'tdsMax' as const, min: 500, max: 2000, unit: 'ppm' },
     { label: 'Temp Min (°C)', key: 'tempMin' as const, min: 0, max: 30, unit: '°C' },
     { label: 'Temp Max (°C)', key: 'tempMax' as const, min: 20, max: 50, unit: '°C' },
-    { label: 'LDR Threshold (%)', key: 'ldrThreshold' as const, min: 0, max: 100, unit: '%' },
+    { label: 'LDR Threshold', key: 'ldrThreshold' as const, min: 0, max: 1023, unit: '' },
     { label: 'Pump1 Duration (sec)', key: 'pump1Duration' as const, min: 10, max: 300, unit: 's' },
-    { label: 'Pump2 Duration (sec)', key: 'pump2Duration' as const, min: 10, max: 300, unit: 's' },
+    { label: 'Pump2 Duration (sec)', key: 'pump2Duration' as const, min: 5, max: 300, unit: 's' }, // changed 10 -> 5
     { label: 'Pump3 Duration (sec)', key: 'pump3Duration' as const, min: 10, max: 300, unit: 's' },
   ]
 
@@ -95,22 +93,60 @@ export default function AutomationPage() {
       <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 backdrop-blur-sm p-4 flex flex-col gap-3">
         <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Crop Preset</label>
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={selectedCrop}
-            onChange={(e) => setSelectedCrop(e.target.value)}
-            className="px-4 py-2 rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
-          >
-            <option value="">Select planting profile</option>
-            {cropPresets.map((preset) => (
-              <option key={preset.name} value={preset.name}>{preset.name}</option>
-            ))}
-          </select>
-          <button
-            onClick={() => applyCropPreset(selectedCrop)}
-            className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 smooth-transition"
-          >
-            Apply Preset
-          </button>
+          <Popover open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+            <PopoverTrigger asChild>
+              <button
+                className="px-4 py-2 rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 flex items-center justify-between gap-2 min-w-[200px]"
+              >
+                <span className={selectedCrop ? '' : 'text-slate-500 dark:text-slate-400'}>
+                  {selectedCrop || 'Select planting profile'}
+                </span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-0 bg-slate-900 dark:bg-slate-900 border border-slate-700 dark:border-slate-700" align="start">
+              <Command className="bg-slate-900 dark:bg-slate-900">
+                <CommandInput
+                  placeholder="Search crops..."
+                  value={cropSearch}
+                  onValueChange={setCropSearch}
+                  className="border-0 bg-slate-900 dark:bg-slate-900 text-slate-100 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-500 focus:ring-0 focus:bg-slate-850 dark:focus:bg-slate-850"
+                />
+                <CommandList className="max-h-[300px] overflow-y-auto bg-slate-900 dark:bg-slate-900">
+                  {cropPresets
+                    .filter((preset) =>
+                      preset.name.toLowerCase().includes(cropSearch.toLowerCase())
+                    )
+                    .length === 0 ? (
+                    <CommandEmpty className="py-2 text-center text-sm text-slate-400 dark:text-slate-400">
+                      No crops found
+                    </CommandEmpty>
+                  ) : (
+                    <CommandGroup className="bg-slate-900 dark:bg-slate-900">
+                      {cropPresets
+                        .filter((preset) =>
+                          preset.name.toLowerCase().includes(cropSearch.toLowerCase())
+                        )
+                        .map((preset) => (
+                          <CommandItem
+                            key={preset.name}
+                            value={preset.name}
+                            onSelect={(value) => {
+                              applyCropPreset(value)
+                              setCropSearch('')
+                              setIsDropdownOpen(false)
+                            }}
+                            className="cursor-pointer bg-slate-900 dark:bg-slate-900 text-slate-100 dark:text-slate-100 hover:bg-slate-800 dark:hover:bg-slate-800 focus:bg-slate-800 dark:focus:bg-slate-800"
+                          >
+                            {preset.name}
+                          </CommandItem>
+                        ))}
+                    </CommandGroup>
+                  )}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
         {presetMessage && <p className="text-xs text-slate-500 dark:text-slate-400">{presetMessage}</p>}
       </div>
@@ -124,39 +160,6 @@ export default function AutomationPage() {
           {savedMessage}
         </motion.div>
       )}
-
-      {/* Auto Mode Toggle */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 backdrop-blur-sm p-8"
-      >
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Auto Mode</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Enable/disable automatic system control</p>
-          </div>
-          <button
-            onClick={handleToggleAutoMode}
-            className={`relative w-16 h-8 rounded-full smooth-transition ${
-              controls.autoMode
-                ? 'bg-cyan-500 dark:bg-cyan-500'
-                : 'bg-slate-300 dark:bg-slate-700'
-            }`}
-          >
-            <div
-              className={`absolute top-1 w-6 h-6 bg-white rounded-full smooth-transition ${
-                controls.autoMode
-                  ? 'translate-x-8'
-                  : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
-        <p className={`text-sm ${controls.autoMode ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-          {controls.autoMode ? 'Auto Mode is ON - System is controlling devices automatically' : 'Auto Mode is OFF - Manual control required'}
-        </p>
-      </motion.div>
 
       {/* Control Sliders */}
       <motion.div
@@ -179,7 +182,7 @@ export default function AutomationPage() {
               <div className="flex items-center justify-between">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{input.label}</label>
                 <span className="text-lg font-bold text-cyan-500 dark:text-cyan-400">
-                  {controls[input.key]} {input.unit}
+                  {controls[input.key]}{input.unit ? ` ${input.unit}` : ''}
                 </span>
               </div>
               <input
