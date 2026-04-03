@@ -27,7 +27,7 @@ export default function DashboardLayout({
         />
       )}
 
-      <main className={`pt-20 pb-8 smooth-transition ${sidebarOpen ? 'md:ml-64' : 'ml-0'} min-h-screen`}>
+      <main className={`pt-20 pb-8 smooth-transition ${sidebarOpen ? 'md:ml-64' : 'md:ml-20'} min-h-screen`}>
         <div className="px-4 sm:px-8 py-8">
           {children}
         </div>

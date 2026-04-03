@@ -70,7 +70,7 @@ export default function SettingsPage() {
   ]
 
   return (
-    <div className="space-y-8 max-w-4xl" style={{
+    <div className="space-y-8 w-full min-h-screen" style={{
       backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.1) 1px, transparent 1px), radial-gradient(circle, rgba(0,0,0,0.1) 1px, transparent 1px)',
       backgroundSize: '20px 20px, 20px 20px',
       backgroundPosition: '0 0, 10px 10px'
@@ -107,17 +107,17 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 max-w-2xl">
           {Object.entries(profile).map(([key, value]) => (
-            <div key={key} className="flex flex-col">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 capitalize">
+            <div key={key} className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
+              <label className="w-full sm:w-40 text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 sm:mb-0 capitalize">
                 {key.replace(/([A-Z])/g, ' $1')}
               </label>
               <input
                 type="text"
                 value={value}
                 onChange={(e) => handleProfileChange(key as keyof typeof profile, e.target.value)}
-                className="px-4 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 smooth-transition"
+                className="w-full sm:w-[calc(100%-160px)] px-4 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 smooth-transition"
               />
             </div>
           ))}
@@ -141,15 +141,15 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
           {[
             { label: 'Critical Alerts', enabled: true },
             { label: 'Warning Alerts', enabled: true },
             { label: 'Daily Summary', enabled: false },
             { label: 'Email Notifications', enabled: true },
           ].map((item) => (
-            <div key={item.label} className="flex items-center justify-between py-3 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 smooth-transition">
-              <span className="text-slate-700 dark:text-slate-300 font-medium">{item.label}</span>
+            <div key={item.label} className="flex items-center justify-start gap-3 py-3 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 smooth-transition">
+              <span className="text-slate-700 dark:text-slate-300 font-medium flex-1">{item.label}</span>
               <button
                 onClick={() => handleToggle(item.label)}
                 className={`relative w-14 h-7 rounded-full smooth-transition ${
@@ -188,15 +188,13 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="space-y-4">
-          {/* Theme Toggle */}
-          <div className="flex items-center justify-between py-3 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 smooth-transition">
-            <div className="flex items-center gap-2">
+        <div className="grid grid-cols-1 gap-4">
+          <div className="flex items-center justify-start gap-4 py-3 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 smooth-transition">
+            <div className="flex items-center gap-2 flex-1">
               {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
               <span className="text-slate-700 dark:text-slate-300 font-medium">Theme</span>
             </div>
-            <div className="flex gap-2">
-              <button
+            <div className="flex gap-2">              <button
                 onClick={() => setTheme('light')}
                 className={`px-3 py-1 rounded-lg text-sm font-medium smooth-transition ${
                   theme === 'light'
@@ -219,7 +217,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Language Toggle */}
           <div className="flex items-center justify-between py-3 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 smooth-transition">
             <div className="flex items-center gap-2">
               <Globe size={18} />
@@ -289,10 +286,10 @@ export default function SettingsPage() {
         transition={{ delay: 0.2 }}
         className="flex gap-3 flex-wrap"
       >
-        <button onClick={handleSave} className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-cyan-500/50 smooth-transition">
+        <button onClick={handleSave} className="w-fit px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-cyan-500/50 smooth-transition text-sm">
           Save Changes
         </button>
-        <button className="px-6 py-3 bg-red-500/20 border border-red-500/30 text-red-600 dark:text-red-400 rounded-lg font-semibold hover:bg-red-500/30 smooth-transition flex items-center gap-2">
+        <button className="px-4 py-2.5 bg-red-500/20 border border-red-500/30 text-red-600 dark:text-red-400 rounded-lg font-semibold hover:bg-red-500/30 smooth-transition flex items-center gap-2 text-sm">
           <LogOut size={18} />
           Logout
         </button>
