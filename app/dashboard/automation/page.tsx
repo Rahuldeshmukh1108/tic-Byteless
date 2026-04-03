@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Save } from 'lucide-react'
+import { cropPresets, CropPreset } from '@/lib/crop-presets'
 
 interface ControlValues {
   tdsMin: number
@@ -29,7 +30,32 @@ export default function AutomationPage() {
     autoMode: true,
   })
 
+  const [selectedCrop, setSelectedCrop] = useState('')
+  const [presetMessage, setPresetMessage] = useState('')
   const [savedMessage, setSavedMessage] = useState('')
+
+  const applyCropPreset = (presetName: string) => {
+    const preset = cropPresets.find((p) => p.name === presetName)
+    if (!preset) {
+      setPresetMessage('Preset not found, try another crop.')
+      return
+    }
+
+    setControls((prev) => ({
+      ...prev,
+      tdsMin: preset.tds.min,
+      tdsMax: preset.tds.max,
+      tempMin: preset.temp.min,
+      tempMax: preset.temp.max,
+      ldrThreshold: Math.round((preset.pH.min + preset.pH.max) / 2 * 10) / 10,
+      pump1Duration: preset.pump1Duration,
+      pump2Duration: preset.pump2Duration,
+      pump3Duration: preset.pump3Duration,
+    }))
+
+    setSelectedCrop(preset.name)
+    setPresetMessage(`Applied crop preset: ${preset.name}`)
+  }
 
   const handleSliderChange = (key: keyof ControlValues, value: number) => {
     setControls((prev) => ({ ...prev, [key]: value }))
@@ -64,6 +90,29 @@ export default function AutomationPage() {
       <div>
         <h1 className="text-4xl font-bold text-foreground dark:text-slate-100 mb-2">Automation Control</h1>
         <p className="text-foreground/60 dark:text-slate-400">Modern control panel for system parameters</p>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 backdrop-blur-sm p-4 flex flex-col gap-3">
+        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Crop Preset</label>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={selectedCrop}
+            onChange={(e) => setSelectedCrop(e.target.value)}
+            className="px-4 py-2 rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          >
+            <option value="">Select planting profile</option>
+            {cropPresets.map((preset) => (
+              <option key={preset.name} value={preset.name}>{preset.name}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => applyCropPreset(selectedCrop)}
+            className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 smooth-transition"
+          >
+            Apply Preset
+          </button>
+        </div>
+        {presetMessage && <p className="text-xs text-slate-500 dark:text-slate-400">{presetMessage}</p>}
       </div>
 
       {savedMessage && (

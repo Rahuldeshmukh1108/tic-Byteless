@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Zap, BarChart3, Settings, Cpu, X } from 'lucide-react'
+import { LayoutDashboard, Zap, BarChart3, Settings, Cpu, X, Lightbulb } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface SidebarItem {
@@ -22,6 +22,7 @@ const sidebarItems: SidebarItem[] = [
   { label: 'Automation', href: '/dashboard/automation', icon: <Zap size={20} /> },
   { label: 'Analytics', href: '/dashboard/analytics', icon: <BarChart3 size={20} /> },
   { label: 'Settings', href: '/dashboard/settings', icon: <Settings size={20} /> },
+  { label: 'HydroChat', href: '/dashboard/hydrochat', icon: <Lightbulb size={20} /> },
 ]
 
 export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
