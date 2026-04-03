@@ -77,6 +77,11 @@ export async function uploadSimulatedData(deviceId: string, isCritical: boolean 
 }
 
 /**
+ * Global registry of active simulations
+ */
+const activeSimulations = new Map<string, () => void>()
+
+/**
  * Starts a continuous simulation of ESP32 data
  * Returns a function to stop the simulation
  */
@@ -85,6 +90,11 @@ export function startDataSimulation(
   interval: number = 5000,
   criticalDataInterval: number = 30000
 ): () => void {
+  // Stop existing simulation if running
+  if (activeSimulations.has(deviceId)) {
+    activeSimulations.get(deviceId)!()
+  }
+
   let dataInterval: NodeJS.Timeout | null = null
   let criticalInterval: NodeJS.Timeout | null = null
 
@@ -103,11 +113,32 @@ export function startDataSimulation(
     }, criticalDataInterval)
   }
 
-  // Return cleanup function
-  return () => {
+  const cleanup = () => {
     if (dataInterval) clearInterval(dataInterval)
     if (criticalInterval) clearInterval(criticalInterval)
+    activeSimulations.delete(deviceId)
   }
+
+  activeSimulations.set(deviceId, cleanup)
+  return cleanup
+}
+
+/**
+ * Stops data simulation for a specific device
+ */
+export function stopDataSimulation(deviceId: string): void {
+  const cleanup = activeSimulations.get(deviceId)
+  if (cleanup) {
+    cleanup()
+  }
+}
+
+/**
+ * Stops all active simulations
+ */
+export function stopAllSimulations(): void {
+  activeSimulations.forEach(cleanup => cleanup())
+  activeSimulations.clear()
 }
 
 /**

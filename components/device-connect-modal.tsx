@@ -28,6 +28,8 @@ export function DeviceConnectModal({
   const [deviceName, setDeviceName] = useState('')
   const [deviceType, setDeviceType] = useState<Device['type']>('hydroponic')
   const [deviceId, setDeviceId] = useState('')
+  const [wifiSsid, setWifiSsid] = useState('')
+  const [wifiPassword, setWifiPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -41,21 +43,30 @@ export function DeviceConnectModal({
       return
     }
 
+    if (!wifiSsid.trim()) {
+      setError('Please enter WiFi SSID')
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
     try {
       setStep('pairing')
       
-      // Simulate device pairing process
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Simulate device pairing process with WiFi configuration
+      await new Promise(resolve => setTimeout(resolve, 3000))
 
-      // Connect device to user
+      // Connect device to user with WiFi credentials
       const newDeviceId = await connectDevice(userId, {
         userId,
         name: deviceName,
         type: deviceType,
         status: 'online',
+        wifiCredentials: {
+          ssid: wifiSsid,
+          password: wifiPassword,
+        }
       })
 
       setDeviceId(newDeviceId)
@@ -90,6 +101,8 @@ export function DeviceConnectModal({
     setDeviceName('')
     setDeviceType('hydroponic')
     setDeviceId('')
+    setWifiSsid('')
+    setWifiPassword('')
     setError(null)
     setSuccess(false)
     setStep('form')
@@ -128,7 +141,7 @@ export function DeviceConnectModal({
                 animate={{ opacity: 1, y: 0 }}
                 className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg"
               >
-                <AlertCircle size={18} className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <AlertCircle size={18} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
                 <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
               </motion.div>
             )}
@@ -165,6 +178,36 @@ export function DeviceConnectModal({
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* WiFi SSID */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                WiFi Network (SSID)
+              </label>
+              <input
+                type="text"
+                value={wifiSsid}
+                onChange={(e) => setWifiSsid(e.target.value)}
+                placeholder="e.g., MyHomeWiFi"
+                disabled={isLoading}
+                className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 disabled:opacity-50"
+              />
+            </div>
+
+            {/* WiFi Password */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                WiFi Password
+              </label>
+              <input
+                type="password"
+                value={wifiPassword}
+                onChange={(e) => setWifiPassword(e.target.value)}
+                placeholder="Enter WiFi password"
+                disabled={isLoading}
+                className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 disabled:opacity-50"
+              />
             </div>
 
             {/* Actions */}

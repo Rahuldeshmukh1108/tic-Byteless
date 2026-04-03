@@ -19,6 +19,10 @@ export interface Device {
   name: string
   type: 'hydroponic' | 'aquaponic' | 'aeroponic'
   status: 'online' | 'offline' | 'error'
+  wifiCredentials?: {
+    ssid: string
+    password: string
+  }
   createdAt: Date
   updatedAt: Date
 }

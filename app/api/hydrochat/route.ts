@@ -1,44 +1,19 @@
 import { NextResponse } from 'next/server'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { cropPresets } from '@/lib/crop-presets'
 
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+
 async function callGeminiAI(plantName: string): Promise<string> {
-  const apiKey = process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY
-  if (!apiKey) {
-    throw new Error('Gemini API key not configured (set GOOGLE_API_KEY or GEMINI_API_KEY)')
-  }
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
   const prompt = `You are a hydroponics assistant. Provide optimal threshold values for ${plantName} in JSON format with fields: pH(min,max), TDS(min,max), temperature(min,max), lightHours, pump1Duration, pump2Duration, pump3Duration, and a short explanation.`
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generate?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt: {
-          text: prompt,
-        },
-        temperature: 0.1,
-        maxOutputTokens: 500,
-      }),
-    }
-  )
+  const result = await model.generateContent(prompt)
+  const response = await result.response
+  const text = response.text()
 
-  if (!response.ok) {
-    const body = await response.text()
-    throw new Error(`Gemini API error ${response.status}: ${body}`)
-  }
-
-  const data = await response.json()
-  const generativeText = data?.candidates?.[0]?.output ?? data?.output?.[0]?.content?.map((c: any) => c.text).join('')
-
-  if (!generativeText) {
-    throw new Error('Empty response from Gemini AI')
-  }
-
-  return generativeText
+  return text
 }
 
 export async function POST(request: Request) {

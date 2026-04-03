@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { isConfigured } from '@/lib/firebase/config'
-import { signup, login, logout, getAuthErrorMessage } from '@/lib/firebase/auth'
+import { signup, login, logout, signInWithGoogle, getAuthErrorMessage } from '@/lib/firebase/auth'
 
 const NOT_CONFIGURED_MESSAGE = 'Firebase is not configured. Please add your Firebase credentials to .env.local'
 
@@ -54,6 +54,26 @@ export function useAuthState() {
     []
   )
 
+  const handleGoogleLogin = useCallback(async () => {
+    if (!isConfigured) {
+      setError(NOT_CONFIGURED_MESSAGE)
+      return false
+    }
+
+    setIsLoading(true)
+    setError(null)
+    try {
+      await signInWithGoogle()
+      return true
+    } catch (err: any) {
+      const errorMessage = getAuthErrorMessage(err)
+      setError(errorMessage)
+      return false
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
   const handleLogout = useCallback(async () => {
     if (!isConfigured) {
       setError(NOT_CONFIGURED_MESSAGE)
@@ -83,6 +103,7 @@ export function useAuthState() {
     error,
     handleSignup,
     handleLogin,
+    handleGoogleLogin,
     handleLogout,
     clearError,
   }

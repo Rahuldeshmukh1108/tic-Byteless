@@ -35,6 +35,28 @@ export async function connectDevice(userId: string, deviceData: Omit<Device, 'id
       growLightStatus: false,
     })
 
+    // Initialize automation config for the device
+    const automationRef = doc(db, 'devices', deviceId, 'automation', 'config')
+    await setDoc(automationRef, {
+      deviceId,
+      enabled: true,
+      temperatureMin: 18,
+      temperatureMax: 28,
+      tdsMin: 800,
+      tdsMax: 1500,
+      humidityMin: 40,
+      humidityMax: 80,
+      pump1Duration: 300, // 5 minutes
+      pump2Duration: 600, // 10 minutes
+      fanThreshold: 26,
+      lightSchedule: {
+        start: '06:00',
+        end: '18:00'
+      },
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    })
+
     return deviceId
   } catch (error) {
     throw error
@@ -42,11 +64,15 @@ export async function connectDevice(userId: string, deviceData: Omit<Device, 'id
 }
 
 /**
- * Update device status (online/offline/error)
+ * Update device automation configuration
  */
-export async function updateDeviceStatus(userId: string, deviceId: string, status: 'online' | 'offline' | 'error'): Promise<void> {
+export async function updateDeviceAutomationConfig(deviceId: string, config: any): Promise<void> {
   try {
-    await updateDeviceInFirestore(userId, deviceId, { status })
+    const automationRef = doc(db, 'devices', deviceId, 'automation', 'config')
+    await setDoc(automationRef, {
+      ...config,
+      updatedAt: Timestamp.now(),
+    }, { merge: true })
   } catch (error) {
     throw error
   }

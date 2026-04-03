@@ -7,12 +7,12 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { loginSchema, type LoginFormData } from '@/lib/auth-validation'
-import { Loader2, AlertCircle, CheckCircle } from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle, LogIn } from 'lucide-react'
 import { useAuthState } from '@/hooks/use-auth-state'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { isLoading, error, handleLogin, clearError } = useAuthState()
+  const { isLoading, error, handleLogin, handleGoogleLogin, clearError } = useAuthState()
   const [successMessage, setSuccessMessage] = useState('')
   const [isDemoLoading, setIsDemoLoading] = useState(false)
 
@@ -48,7 +48,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-background via-background to-black/50 dark:from-black dark:via-black dark:to-blue-950/30 flex items-center justify-center px-4 py-12">
+    <main className="min-h-screen bg-linear-to-br from-background via-background to-black/50 dark:from-black dark:via-black dark:to-blue-950/30 flex items-center justify-center px-4 py-12">
       {/* Background Decorations */}
       <div className="absolute inset-0 -z-10">
         <motion.div
@@ -73,7 +73,7 @@ export default function LoginPage() {
           {/* Header */}
           <div className="text-center space-y-2">
             <Link href="/" className="inline-flex items-center gap-2 font-bold text-xl gradient-text">
-              <div className="w-8 h-8 bg-gradient-to-r from-cyan-400 to-blue-600 rounded-lg" />
+              <div className="w-8 h-8 bg-linear-to-r from-cyan-400 to-blue-600 rounded-lg" />
               HydroSync
             </Link>
             <h1 className="text-3xl font-bold text-foreground mt-4">Welcome Back</h1>
@@ -162,7 +162,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-cyan-500/50 disabled:opacity-70 smooth-transition flex items-center justify-center gap-2"
+              className="w-full py-2.5 px-4 bg-linear-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-cyan-500/50 disabled:opacity-70 smooth-transition flex items-center justify-center gap-2"
             >
               {isLoading && <Loader2 size={20} className="animate-spin" />}
               {isLoading ? 'Signing in...' : 'Sign In'}
@@ -193,19 +193,29 @@ export default function LoginPage() {
           <button
             onClick={handleDemoLogin}
             disabled={isDemoLoading}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/50 disabled:opacity-70 smooth-transition font-medium flex items-center justify-center gap-2"
+            className="w-full px-4 py-2.5 bg-linear-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/50 disabled:opacity-70 smooth-transition font-medium flex items-center justify-center gap-2"
           >
             {isDemoLoading && <Loader2 size={20} className="animate-spin" />}
             {isDemoLoading ? 'Entering demo...' : 'Continue with Demo Credentials'}
           </button>
 
           {/* Social Login Buttons */}
-          <div className="grid grid-cols-2 gap-3">
-            <button className="px-4 py-2.5 border border-white/20 rounded-lg text-foreground hover:bg-white/5 smooth-transition font-medium">
-              Google
-            </button>
-            <button className="px-4 py-2.5 border border-white/20 rounded-lg text-foreground hover:bg-white/5 smooth-transition font-medium">
-              GitHub
+          <div className="grid grid-cols-1 gap-3">
+            <button
+              type="button"
+              onClick={async () => {
+                clearError()
+                const success = await handleGoogleLogin()
+                if (success) {
+                  setSuccessMessage('Google sign-in successful! Redirecting...')
+                  setTimeout(() => router.push('/dashboard'), 1000)
+                }
+              }}
+              disabled={isLoading}
+              className="w-full px-4 py-2.5 border border-white/20 rounded-lg text-foreground hover:bg-white/5 smooth-transition font-medium flex items-center justify-center gap-2 disabled:opacity-70"
+            >
+              <LogIn size={18} />
+              Continue with Google
             </button>
           </div>
         </div>

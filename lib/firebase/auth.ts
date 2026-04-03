@@ -1,14 +1,18 @@
 import {
   createUserWithEmailAndPassword,
+  signInWithPopup,
   signInWithEmailAndPassword,
   signOut,
   setPersistence,
   browserLocalPersistence,
+  GoogleAuthProvider,
   onAuthStateChanged,
   User,
 } from 'firebase/auth'
 import { auth, db } from './config'
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore'
+
+const googleProvider = new GoogleAuthProvider()
 
 export interface UserProfile {
   uid: string
@@ -66,6 +70,36 @@ export async function login(email: string, password: string): Promise<User> {
 
     const userCredential = await signInWithEmailAndPassword(auth, email, password)
     return userCredential.user
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * Sign in with Google
+ */
+export async function signInWithGoogle(): Promise<User> {
+  try {
+    await setPersistence(auth, browserLocalPersistence)
+    const userCredential = await signInWithPopup(auth, googleProvider)
+    const user = userCredential.user
+
+    // Ensure Firestore user profile exists
+    const userRef = doc(db, 'users', user.uid)
+    const userDoc = await getDoc(userRef)
+    if (!userDoc.exists()) {
+      await setDoc(userRef, {
+        uid: user.uid,
+        name: user.displayName || 'Google User',
+        email: user.email || '',
+        language: 'en',
+        theme: 'dark',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+    }
+
+    return user
   } catch (error) {
     throw error
   }
