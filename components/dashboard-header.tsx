@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { LogOut, Home, Globe } from 'lucide-react'
+import { LogOut, Home, Globe, Menu, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { ThemeToggle } from './theme-toggle'
 import { useAuthState } from '@/hooks/use-auth-state'
 import { useAuth } from '@/contexts/auth-context'
