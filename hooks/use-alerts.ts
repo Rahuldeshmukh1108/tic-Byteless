@@ -6,12 +6,18 @@ import { Alert } from '@/lib/firebase/firestore'
 import { subscribeUserAlerts, subscribeUnreadAlerts } from '@/lib/firebase/realtime'
 import { markAlertAsRead, deleteAlert } from '@/lib/firebase/firestore'
 
-export function useAlerts(userId: string | null) {
+export function useAlerts(userId: string | null, authReady: boolean = true) {
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!authReady) {
+      setAlerts([])
+      setIsLoading(true)
+      return
+    }
+
     if (!userId || !isConfigured) {
       setAlerts([])
       setIsLoading(false)
@@ -25,7 +31,7 @@ export function useAlerts(userId: string | null) {
     })
 
     return () => unsubscribe()
-  }, [userId])
+  }, [userId, authReady])
 
   const readAlert = useCallback(
     async (alertId: string) => {

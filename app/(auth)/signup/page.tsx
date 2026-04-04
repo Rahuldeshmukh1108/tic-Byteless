@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
@@ -9,11 +9,14 @@ import { motion } from 'framer-motion'
 import { signupSchema, type SignupFormData } from '@/lib/auth-validation'
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react'
 import { useAuthState } from '@/hooks/use-auth-state'
+import { useAuth } from '@/contexts/auth-context'
 
 export default function SignupPage() {
   const router = useRouter()
+  const { user } = useAuth()
   const { isLoading, error, handleSignup, clearError } = useAuthState()
   const [successMessage, setSuccessMessage] = useState('')
+  const [signedUp, setSignedUp] = useState(false)
 
   const {
     register,
@@ -27,34 +30,91 @@ export default function SignupPage() {
 
   const password = watch('password')
 
+  useEffect(() => {
+    if (user) {
+      router.replace('/dashboard')
+    }
+  }, [user, router])
+
+  useEffect(() => {
+    if (signedUp && user) {
+      router.replace('/dashboard')
+    }
+  }, [signedUp, user, router])
+
   const onSubmit = async (data: SignupFormData) => {
     clearError()
     setSuccessMessage('')
 
     const success = await handleSignup(data.email, data.password, data.name)
-    
     if (success) {
-      setSuccessMessage('Account created successfully! Redirecting...')
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 1000)
+      setSuccessMessage('Account created successfully! Finalizing sign-in...')
+      setSignedUp(true)
     }
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-background via-background to-black/50 dark:from-black dark:via-black dark:to-blue-950/30 flex items-center justify-center px-4 py-12">
-      {/* Background Decorations */}
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center px-4 py-12 relative overflow-hidden">
+      {/* Enhanced Background Pattern */}
       <div className="absolute inset-0 -z-10">
+        {/* Animated gradient orbs */}
         <motion.div
-          animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.3, 0.2] }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-20 right-20 w-72 h-72 bg-cyan-500 rounded-full blur-3xl"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.3, 0.5, 0.3],
+            x: [0, 50, 0],
+            y: [0, -30, 0]
+          }}
+          transition={{ duration: 12, repeat: Infinity }}
+          className="absolute top-20 right-20 w-96 h-96 bg-gradient-to-br from-cyan-400/20 to-blue-600/20 rounded-full blur-3xl"
         />
         <motion.div
-          animate={{ scale: [1.1, 1, 1.1], opacity: [0.3, 0.2, 0.3] }}
+          animate={{
+            scale: [1.2, 1, 1.2],
+            opacity: [0.4, 0.2, 0.4],
+            x: [0, -40, 0],
+            y: [0, 40, 0]
+          }}
+          transition={{ duration: 10, repeat: Infinity, delay: 2 }}
+          className="absolute bottom-20 left-20 w-80 h-80 bg-gradient-to-br from-blue-500/25 to-purple-600/25 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.2, 0.4, 0.2],
+            rotate: [0, 180, 360]
+          }}
+          transition={{ duration: 15, repeat: Infinity, delay: 1 }}
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-green-400/15 to-cyan-500/15 rounded-full blur-2xl"
+        />
+
+        {/* Geometric pattern overlay */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(6,182,212,0.3)_1px,transparent_0)] bg-[length:40px_40px]" />
+        </div>
+
+        {/* Floating hydroponic elements */}
+        <motion.div
+          animate={{
+            y: [0, -20, 0],
+            rotate: [0, 5, 0]
+          }}
+          transition={{ duration: 6, repeat: Infinity }}
+          className="absolute top-32 left-16 w-12 h-12 bg-gradient-to-br from-green-400/20 to-green-600/20 rounded-full blur-sm"
+        />
+        <motion.div
+          animate={{
+            y: [0, 15, 0],
+            x: [0, -10, 0]
+          }}
           transition={{ duration: 8, repeat: Infinity, delay: 1 }}
-          className="absolute bottom-20 left-20 w-72 h-72 bg-blue-500 rounded-full blur-3xl"
+          className="absolute bottom-40 right-32 w-8 h-8 bg-gradient-to-br from-blue-400/25 to-cyan-500/25 rounded-full blur-sm"
         />
+
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 opacity-[0.02]">
+          <div className="h-full w-full bg-[linear-gradient(90deg,rgba(6,182,212,0.1)_1px,transparent_1px),linear-gradient(rgba(6,182,212,0.1)_1px,transparent_1px)] bg-[size:60px_60px]" />
+        </div>
       </div>
 
       <motion.div
@@ -67,7 +127,11 @@ export default function SignupPage() {
           {/* Header */}
           <div className="text-center space-y-2">
             <Link href="/" className="inline-flex items-center gap-2 font-bold text-xl gradient-text">
-              <div className="w-8 h-8 bg-gradient-to-r from-cyan-400 to-blue-600 rounded-lg" />
+              <img
+                src="/logo.png"
+                alt="HydroSync Logo"
+                className="w-8 h-8"
+              />
               HydroSync
             </Link>
             <h1 className="text-3xl font-bold text-foreground mt-4">Create Account</h1>

@@ -51,7 +51,11 @@ export function Footer() {
           {/* Brand Column */}
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center gap-2 font-bold text-lg gradient-text mb-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-cyan-400 to-blue-600 rounded-lg" />
+              <img
+                src="/logo.png"
+                alt="HydroSync Logo"
+                className="w-8 h-8"
+              />
               HydroSync
             </Link>
             <p className="text-sm text-foreground/70">

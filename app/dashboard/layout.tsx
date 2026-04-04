@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { DashboardHeader } from '@/components/dashboard-header'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { DeviceProvider } from '@/contexts/device-context'
+import { useAuth } from '@/contexts/auth-context'
 
 export default function DashboardLayout({
   children,
@@ -11,8 +13,27 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/login')
+    }
+  }, [loading, user, router])
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen)
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+        <div className="text-center">
+          <p className="text-lg font-semibold">Checking your session…</p>
+          <p className="text-sm text-slate-400 mt-2">Redirecting to login if necessary.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <DeviceProvider>

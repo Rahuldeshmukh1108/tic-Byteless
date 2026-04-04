@@ -74,6 +74,10 @@ export function useAuthState() {
     }
   }, [])
 
+  const setAuthError = useCallback((message: string | null) => {
+    setError(message)
+  }, [])
+
   const handleLogout = useCallback(async () => {
     if (!isConfigured) {
       setError(NOT_CONFIGURED_MESSAGE)
@@ -106,5 +110,6 @@ export function useAuthState() {
     handleGoogleLogin,
     handleLogout,
     clearError,
+    setAuthError,
   }
 }

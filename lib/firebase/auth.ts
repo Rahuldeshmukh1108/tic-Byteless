@@ -1,18 +1,22 @@
 import {
   createUserWithEmailAndPassword,
-  signInWithPopup,
   signInWithEmailAndPassword,
   signOut,
   setPersistence,
   browserLocalPersistence,
   GoogleAuthProvider,
   onAuthStateChanged,
+  signInWithRedirect,
+  getRedirectResult,
   User,
 } from 'firebase/auth'
 import { auth, db } from './config'
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore'
 
 const googleProvider = new GoogleAuthProvider()
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+})
 
 export interface UserProfile {
   uid: string
@@ -33,15 +37,26 @@ export async function signup(
   password: string,
   name: string
 ): Promise<UserProfile> {
+  if (!auth) {
+    throw new Error('Firebase auth is not initialized. Verify your .env.local configuration.')
+  }
+  if (!db) {
+    throw new Error('Firestore is not initialized. Verify your Firebase configuration.')
+  }
+
   try {
-    // Set persistence to local so user stays logged in
     await setPersistence(auth, browserLocalPersistence)
 
-    // Create user in Firebase Auth
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     const user = userCredential.user
 
-    // Create user profile in Firestore
+    if (!user) {
+      throw new Error('Failed to create user account. Please try again.')
+    }
+
+    await user.reload()
+    await user.getIdToken(true)
+
     const userProfile: UserProfile = {
       uid: user.uid,
       name,
@@ -64,8 +79,11 @@ export async function signup(
  * Sign in an existing user with email and password
  */
 export async function login(email: string, password: string): Promise<User> {
+  if (!auth) {
+    throw new Error('Firebase auth is not initialized. Verify your .env.local configuration.')
+  }
+
   try {
-    // Set persistence to local so user stays logged in
     await setPersistence(auth, browserLocalPersistence)
 
     const userCredential = await signInWithEmailAndPassword(auth, email, password)
@@ -78,37 +96,58 @@ export async function login(email: string, password: string): Promise<User> {
 /**
  * Sign in with Google
  */
-export async function signInWithGoogle(): Promise<User> {
-  try {
-    await setPersistence(auth, browserLocalPersistence)
-    const userCredential = await signInWithPopup(auth, googleProvider)
-    const user = userCredential.user
-
-    // Ensure Firestore user profile exists
-    const userRef = doc(db, 'users', user.uid)
-    const userDoc = await getDoc(userRef)
-    if (!userDoc.exists()) {
-      await setDoc(userRef, {
-        uid: user.uid,
-        name: user.displayName || 'Google User',
-        email: user.email || '',
-        language: 'en',
-        theme: 'dark',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-    }
-
-    return user
-  } catch (error) {
-    throw error
+async function ensureUserProfile(user: User): Promise<void> {
+  if (!db) {
+    throw new Error('Firestore database is not initialized.')
   }
+
+  const userRef = doc(db, 'users', user.uid)
+  const userDoc = await getDoc(userRef)
+  if (!userDoc.exists()) {
+    await setDoc(userRef, {
+      uid: user.uid,
+      name: user.displayName || 'Google User',
+      email: user.email || '',
+      language: 'en',
+      theme: 'dark',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+  }
+}
+
+export async function signInWithGoogle(): Promise<void> {
+  if (!auth) {
+    throw new Error('Firebase auth is not initialized. Verify your .env.local configuration.')
+  }
+
+  console.log('Starting Google sign-in redirect...')
+  await setPersistence(auth, browserLocalPersistence)
+  return signInWithRedirect(auth, googleProvider)
+}
+
+export async function completeGoogleRedirectSignIn(): Promise<boolean> {
+  if (!auth) {
+    throw new Error('Firebase auth is not initialized.')
+  }
+
+  const result = await getRedirectResult(auth)
+  if (!result?.user) {
+    return false
+  }
+
+  await ensureUserProfile(result.user)
+  return true
 }
 
 /**
  * Sign out the current user
  */
 export async function logout(): Promise<void> {
+  if (!auth) {
+    throw new Error('Firebase auth is not initialized. Verify your .env.local configuration.')
+  }
+
   try {
     await signOut(auth)
   } catch (error) {
@@ -179,9 +218,17 @@ export function getAuthErrorMessage(error: any): string {
     case 'auth/weak-password':
       return 'The password is too weak. Use at least 8 characters with an uppercase letter and number.'
     case 'auth/operation-not-allowed':
-      return 'This operation is not allowed.'
+      return 'This operation is not allowed. Please enable Email/Password or Google sign-in in Firebase Auth settings.'
     case 'auth/too-many-requests':
       return 'Too many login attempts. Please try again later.'
+    case 'auth/missing-or-insufficient-credential':
+      return 'Missing or insufficient credentials. Verify your Firebase configuration and try again.'
+    case 'auth/permission-denied':
+      return 'Firebase permission denied. Ensure your security rules allow the authenticated user to create and read their profile.'
+    case 'auth/auth-domain-config-required':
+      return 'Firebase Auth requires an authDomain. Check your NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN value in .env.local.'
+    case 'auth/invalid-api-key':
+      return 'Invalid Firebase API key. Check your NEXT_PUBLIC_FIREBASE_API_KEY value in .env.local.'
     default:
       return message || 'An authentication error occurred.'
   }

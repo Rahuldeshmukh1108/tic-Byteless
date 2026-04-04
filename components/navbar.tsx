@@ -26,7 +26,11 @@ export function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 font-bold text-xl gradient-text hover:scale-105 transition-transform">
-            <div className="w-9 h-9 bg-gradient-to-r from-cyan-400 to-blue-600 rounded-xl shadow-lg" />
+            <img
+              src="/logo.png"
+              alt="HydroSync Logo"
+              className="w-9 h-9"
+            />
             <span className="text-slate-900 dark:text-slate-100">HydroSync</span>
           </Link>
 

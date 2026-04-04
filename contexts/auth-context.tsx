@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User } from 'firebase/auth'
 import { isConfigured } from '@/lib/firebase/config'
-import { onAuthStateChange } from '@/lib/firebase/auth'
+import { onAuthStateChange, getUserProfile } from '@/lib/firebase/auth'
 import { UserProfile } from '@/lib/firebase/auth'
 
 interface AuthContextType {
@@ -33,11 +33,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChange(async (authUser) => {
       try {
         setUser(authUser)
-        
+
         if (authUser) {
-          // In a real app, fetch the user profile from Firestore here
-          // For now, we'll set it to null and let individual components fetch it
-          setUserProfile(null)
+          const profile = await getUserProfile(authUser.uid)
+          setUserProfile(profile)
         } else {
           setUserProfile(null)
         }

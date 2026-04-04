@@ -19,8 +19,9 @@ interface AlertContextType {
 const AlertContext = createContext<AlertContextType | undefined>(undefined)
 
 export function AlertProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth()
-  const { alerts, unreadCount, recentAlerts, isLoading, error, readAlert, removeAlert, clearError } = useAlerts(user?.uid || null)
+  const { user, loading } = useAuth()
+  const authReady = !loading
+  const { alerts, unreadCount, recentAlerts, isLoading, error, readAlert, removeAlert, clearError } = useAlerts(user?.uid || null, authReady)
 
   return (
     <AlertContext.Provider
