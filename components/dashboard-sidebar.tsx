@@ -36,6 +36,7 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
       <AnimatePresence>
         {isOpen && (
           <motion.aside
+            id="dashboard-sidebar"
             initial={{ x: -256 }}
             animate={{ x: 0 }}
             exit={{ x: -256 }}
@@ -43,7 +44,7 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
             className="fixed left-0 top-20 h-[calc(100vh-5rem)] w-full md:w-64 bg-gradient-to-b from-white via-white to-slate-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border-r border-slate-200/60 dark:border-slate-700/60 smooth-transition z-30 shadow-xl overflow-hidden flex flex-col backdrop-blur-sm"
           >
             {/* Toggle Button */}
-            <div className="flex justify-start pt-4 px-2 mb-4">
+            <div className="hidden md:flex justify-start pt-4 px-2 mb-4">
               <motion.button
                 onClick={onToggle}
                 className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 smooth-transition"
@@ -105,6 +106,7 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
       <AnimatePresence>
         {!isOpen && (
           <motion.aside
+            id="dashboard-sidebar"
             initial={{ x: -80 }}
             animate={{ x: 0 }}
             exit={{ x: -80 }}
