@@ -7,7 +7,7 @@ import {
   QueryConstraint,
 } from 'firebase/firestore'
 import { db } from './config'
-import { LiveData, Alert, Device, AutomationRule } from './firestore'
+import { LiveData, Alert, Device, AutomationRule, UserSettings, SystemMetrics } from './firestore'
 
 /**
  * Subscribe to live device data in real-time
@@ -167,4 +167,74 @@ export function subscribeMultipleLiveData(
   })
 
   return unsubscribers
+}
+
+/**
+ * Subscribe to user settings in real-time
+ */
+export function subscribeUserSettings(
+  userId: string,
+  callback: (settings: UserSettings | null) => void
+): () => void {
+  const docRef = doc(db, 'users', userId, 'settings', 'preferences')
+  const unsubscribe = onSnapshot(docRef, snapshot => {
+    if (snapshot.exists()) {
+      callback(snapshot.data() as UserSettings)
+    } else {
+      callback(null)
+    }
+  }, (error) => {
+    console.error('[HydroSync] Firestore user settings listener error:', error)
+    callback(null)
+  })
+
+  return unsubscribe
+}
+
+/**
+ * Subscribe to system metrics in real-time
+ */
+export function subscribeSystemMetrics(
+  userId: string,
+  callback: (metrics: SystemMetrics | null) => void
+): () => void {
+  const docRef = doc(db, 'users', userId, 'metrics', 'system')
+  const unsubscribe = onSnapshot(docRef, snapshot => {
+    if (snapshot.exists()) {
+      callback(snapshot.data() as SystemMetrics)
+    } else {
+      callback(null)
+    }
+  }, (error) => {
+    console.error('[HydroSync] Firestore system metrics listener error:', error)
+    callback(null)
+  })
+
+  return unsubscribe
+}
+
+/**
+ * Subscribe to recent alerts with limit
+ */
+export function subscribeRecentAlerts(
+  userId: string,
+  limit: number = 10,
+  callback: (alerts: Alert[]) => void
+): () => void {
+  const collectionRef = collection(db, 'users', userId, 'alerts')
+  const unsubscribe = onSnapshot(collectionRef, snapshot => {
+    const alerts = snapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }) as Alert)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .slice(0, limit)
+    callback(alerts)
+  }, (error) => {
+    console.error('[HydroSync] Firestore recent alerts listener error:', error)
+    callback([])
+  })
+
+  return unsubscribe
 }

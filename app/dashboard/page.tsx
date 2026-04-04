@@ -1,28 +1,72 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { MetricCard } from '@/components/metric-card'
+import { MetricCard, type MetricCardData } from '@/components/metric-card'
 import { AlertsSection } from '@/components/alerts-section'
 import { DeviceStatus } from '@/components/device-status'
 import { MetricSkeleton } from '@/components/metric-skeleton'
-import { getMockAlerts } from '@/lib/mock-data'
-import type { Alert } from '@/lib/mock-data'
 import { Activity, TrendingUp, Droplets, Thermometer } from 'lucide-react'
 import { useDeviceContext } from '@/contexts/device-context'
 import { useAuth } from '@/contexts/auth-context'
-import { subscribeLiveData } from '@/lib/firebase/realtime'
-import { LiveData } from '@/lib/firebase/firestore'
+import { subscribeLiveData, subscribeRecentAlerts, subscribeSystemMetrics } from '@/lib/firebase/realtime'
+import { updateSystemMetrics, getDeviceStats, getReadingAnalytics } from '@/lib/firebase/firestore'
+import { LiveData, Alert } from '@/lib/firebase/firestore'
 
 export default function DashboardPage() {
-  const { user } = useAuth()
+  const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const { devices, isLoading: devicesLoading } = useDeviceContext()
-  const [metrics, setMetrics] = useState<any[]>([])
+  const [metrics, setMetrics] = useState<MetricCardData[]>([])
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [deviceLiveData, setDeviceLiveData] = useState<Record<string, LiveData | null>>({})
+  const [systemMetrics, setSystemMetrics] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [uptime, setUptime] = useState(0)
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!user && !authLoading) {
+      router.push('/login')
+    }
+  }, [user, authLoading])
+
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+          <p className="text-slate-600 dark:text-slate-400">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render anything if not authenticated
+  if (!user) {
+    return null
+  }
+
+  // Helper function to format uptime
+  const formatUptime = (seconds: number): string => {
+    const days = Math.floor(seconds / 86400)
+    const hours = Math.floor((seconds % 86400) / 3600)
+    const mins = Math.floor((seconds % 3600) / 60)
+
+    if (days > 0) {
+      return `${days}d ${hours}h`
+    } else if (hours > 0) {
+      return `${hours}h ${mins}m`
+    } else {
+      return `${mins}m ${seconds % 60}s`
+    }
+  }
 
   useEffect(() => {
+    if (!user || authLoading) return
+
     // Subscribe to live data for all devices
     const unsubscribers: (() => void)[] = []
 
@@ -39,16 +83,68 @@ export default function DashboardPage() {
     return () => {
       unsubscribers.forEach(unsubscribe => unsubscribe())
     }
-  }, [devices])
+  }, [devices, user, authLoading])
 
   useEffect(() => {
-    // Initial load
-    setAlerts(getMockAlerts())
-    setIsLoading(false)
+    if (!user || authLoading) return
 
+    // Subscribe to real-time alerts
+    const unsubscribeAlerts = subscribeRecentAlerts(user.uid, 10, (alertsData) => {
+      setAlerts(alertsData)
+    })
+
+    // Subscribe to system metrics
+    const unsubscribeMetrics = subscribeSystemMetrics(user.uid, (metricsData) => {
+      setSystemMetrics(metricsData)
+    })
+
+    // Initialize uptime counter
+    const startTime = Date.now()
+    const uptimeInterval = setInterval(() => {
+      setUptime(Math.floor((Date.now() - startTime) / 1000))
+    }, 1000)
+
+    // Load initial data
+    const loadInitialData = async () => {
+      try {
+        // Get device stats
+        const deviceStats = await getDeviceStats(user.uid)
+        const readingAnalytics = await getReadingAnalytics(user.uid, 7)
+
+        // Update system metrics
+        await updateSystemMetrics(user.uid, {
+          uptime: uptime,
+          totalDevices: deviceStats.total,
+          activeDevices: deviceStats.online,
+          totalReadings: readingAnalytics.totalReadings,
+          alertsToday: alerts.filter(a => {
+            const today = new Date()
+            const alertDate = a.timestamp
+            return alertDate.toDateString() === today.toDateString()
+          }).length,
+          automationRules: 0, // Will be updated when automation is implemented
+        })
+
+        setIsLoading(false)
+      } catch (error) {
+        console.error('Error loading initial data:', error)
+        setIsLoading(false)
+      }
+    }
+
+    loadInitialData()
+
+    return () => {
+      unsubscribeAlerts()
+      unsubscribeMetrics()
+      clearInterval(uptimeInterval)
+    }
+  }, [user, authLoading])
+
+  useEffect(() => {
     // Create metrics from device live data
     const updateMetrics = () => {
-      const newMetrics = devices.map(device => {
+      const newMetrics: MetricCardData[] = devices.map(device => {
         const liveData = deviceLiveData[device.id]
         return {
           id: device.id,
@@ -59,6 +155,7 @@ export default function DashboardPage() {
           icon: Thermometer,
           color: 'blue' as const,
           status: device.status,
+          lastUpdated: liveData ? 'Just now' : 'Waiting for data',
         }
       })
 
@@ -78,6 +175,7 @@ export default function DashboardPage() {
           icon: Activity,
           color: 'green' as const,
           status: 'online' as const,
+          lastUpdated: 'Live overview',
         })
       }
 
@@ -272,10 +370,10 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Uptime', value: '45 days 12 hrs', icon: Activity, color: 'text-green-600' },
-              { label: 'Active Sensors', value: '8', icon: Thermometer, color: 'text-blue-600' },
-              { label: 'Automation Rules', value: '12', icon: TrendingUp, color: 'text-purple-600' },
-              { label: 'Data Points Today', value: '8,492', icon: Droplets, color: 'text-cyan-600' },
+              { label: 'Uptime', value: formatUptime(uptime), icon: Activity, color: 'text-green-600' },
+              { label: 'Active Sensors', value: systemMetrics?.activeDevices?.toString() || '0', icon: Thermometer, color: 'text-blue-600' },
+              { label: 'Automation Rules', value: systemMetrics?.automationRules?.toString() || '0', icon: TrendingUp, color: 'text-purple-600' },
+              { label: 'Data Points Today', value: systemMetrics?.totalReadings?.toString() || '0', icon: Droplets, color: 'text-cyan-600' },
             ].map((item, index) => (
               <motion.div
                 key={item.label}

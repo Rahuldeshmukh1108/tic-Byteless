@@ -1,29 +1,54 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import type { MetricCard as MetricCardType } from '@/lib/mock-data'
+import type { LucideIcon } from 'lucide-react'
+
+export interface MetricCardData {
+  id: string
+  title: string
+  value: string
+  change: string
+  trend: 'up' | 'down' | 'neutral'
+  icon: LucideIcon
+  color: 'blue' | 'green'
+  status: 'online' | 'offline' | 'error'
+  lastUpdated?: string
+}
 
 interface MetricCardProps {
-  metric: MetricCardType
+  metric: MetricCardData
 }
 
 export function MetricCard({ metric }: MetricCardProps) {
-  const statusColors = {
-    normal: 'border-green-300 dark:border-green-500/50 bg-green-50 dark:bg-green-500/10',
-    warning: 'border-yellow-300 dark:border-yellow-500/50 bg-yellow-50 dark:bg-yellow-500/10',
-    critical: 'border-red-300 dark:border-red-500/50 bg-red-50 dark:bg-red-500/10',
+  const toneColors = {
+    blue: 'border-cyan-200 dark:border-cyan-500/30 bg-linear-to-br from-cyan-50 to-blue-50 dark:from-cyan-500/10 dark:to-blue-500/10',
+    green: 'border-emerald-200 dark:border-emerald-500/30 bg-linear-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10',
   }
 
   const statusDotColors = {
-    normal: 'bg-green-500',
-    warning: 'bg-yellow-500',
-    critical: 'bg-red-500',
+    online: 'bg-green-500',
+    offline: 'bg-slate-400',
+    error: 'bg-red-500',
   }
 
   const statusTextColors = {
-    normal: 'text-green-700 dark:text-green-400',
-    warning: 'text-yellow-700 dark:text-yellow-400',
-    critical: 'text-red-700 dark:text-red-400',
+    online: 'text-green-700 dark:text-green-400',
+    offline: 'text-slate-700 dark:text-slate-400',
+    error: 'text-red-700 dark:text-red-400',
+  }
+
+  const trendColors = {
+    up: 'text-green-700 dark:text-green-400',
+    down: 'text-red-700 dark:text-red-400',
+    neutral: 'text-slate-600 dark:text-slate-400',
+  }
+
+  const Icon = metric.icon
+
+  const statusLabel = {
+    online: 'Online',
+    offline: 'Offline',
+    error: 'Error',
   }
 
   return (
@@ -31,31 +56,31 @@ export function MetricCard({ metric }: MetricCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className={`rounded-xl border p-6 backdrop-blur-sm smooth-transition hover:shadow-lg ${statusColors[metric.status]}`}
+      className={`rounded-xl border p-6 backdrop-blur-sm smooth-transition hover:shadow-lg ${toneColors[metric.color]}`}
     >
       <div className="flex items-start justify-between mb-4">
         <div>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">{metric.title}</p>
-          <div className="flex items-baseline gap-2">
+          <div className="flex items-baseline gap-3">
             <span className="text-3xl font-bold text-slate-900 dark:text-slate-100">
               {metric.value}
             </span>
-            {metric.unit && (
-              <span className="text-lg text-slate-600 dark:text-slate-400">{metric.unit}</span>
-            )}
+            <span className={`text-sm font-medium ${trendColors[metric.trend]}`}>{metric.change}</span>
           </div>
         </div>
-        <span className="text-3xl">{metric.icon}</span>
+        <div className="rounded-lg bg-white/70 dark:bg-slate-900/40 p-3">
+          <Icon className="h-6 w-6 text-slate-700 dark:text-slate-200" />
+        </div>
       </div>
 
       <div className="flex items-center justify-between pt-4 border-t border-white/10 dark:border-white/10">
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${statusDotColors[metric.status]} animate-pulse`} />
           <span className={`text-xs font-medium ${statusTextColors[metric.status]}`}>
-            {metric.status.charAt(0).toUpperCase() + metric.status.slice(1)}
+            {statusLabel[metric.status]}
           </span>
         </div>
-        <span className="text-xs text-slate-600 dark:text-slate-500">{metric.lastUpdated}</span>
+        <span className="text-xs text-slate-600 dark:text-slate-500">{metric.lastUpdated ?? 'Live'}</span>
       </div>
     </motion.div>
   )

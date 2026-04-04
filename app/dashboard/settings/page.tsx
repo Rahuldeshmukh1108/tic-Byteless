@@ -7,33 +7,80 @@ import { useTheme } from 'next-themes'
 import { Bell, Lock, User, Zap, Shield, LogOut, Sun, Moon, Globe } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { useAuthState } from '@/hooks/use-auth-state'
+import { getUserSettings, updateUserSettings, createUserSettings } from '@/lib/firebase/firestore'
+import { subscribeUserSettings } from '@/lib/firebase/realtime'
+import { UserSettings } from '@/lib/firebase/firestore'
 
 export default function SettingsPage() {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
-  const { user, userProfile } = useAuth()
+  const { user, userProfile, loading: authLoading } = useAuth()
   const { handleLogout } = useAuthState()
-  const [language, setLanguage] = useState<'en' | 'hi'>('en')
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [savedMessage, setSavedMessage] = useState('')
+  const [language, setLanguage] = useState<UserSettings['preferences']['language']>('en')
   const [profile, setProfile] = useState({
     fullName: userProfile?.name || user?.displayName || 'John Farmer',
     email: user?.email || 'john@hydrosync.com',
     phone: '+1 (555) 123-4567',
   })
 
-  const [toggles, setToggles] = useState({
-    'Critical Alerts': true,
-    'Warning Alerts': true,
-    'Daily Summary': false,
-    'Email Notifications': true,
-  })
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!user && !authLoading) {
+      router.push('/login')
+    }
+  }, [user, authLoading])
 
-  const handleToggle = (label: string) => {
-    setToggles((prev) => ({ ...prev, [label]: !prev[label] }))
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+          <p className="text-slate-600 dark:text-slate-400">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render anything if not authenticated
+  if (!user) {
+    return null
   }
 
   const handleProfileChange = (key: keyof typeof profile, value: string) => {
     setProfile((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const handleToggle = (label: string) => {
+    if (!userSettings) return
+
+    const keyMap: Record<string, keyof UserSettings['notifications']> = {
+      'Critical Alerts': 'criticalAlerts',
+      'Warning Alerts': 'warningAlerts',
+      'Daily Summary': 'dailySummary',
+      'Email Notifications': 'emailNotifications',
+    }
+
+    const settingKey = keyMap[label]
+    if (settingKey) {
+      setUserSettings((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          notifications: {
+            ...prev.notifications,
+            [settingKey]: !prev.notifications[settingKey],
+          },
+        }
+      })
+    }
+  }
+
+  const handleLanguageChange = (newLanguage: UserSettings['preferences']['language']) => {
+    setLanguage(newLanguage)
   }
 
   useEffect(() => {
@@ -41,7 +88,7 @@ export default function SettingsPage() {
       setProfile({
         fullName: userProfile.name,
         email: userProfile.email,
-        phone: userProfile.phone || '',
+        phone: userSettings?.profile?.phone || '',
       })
     } else if (user) {
       setProfile((prev) => ({
@@ -50,11 +97,77 @@ export default function SettingsPage() {
         email: user.email || prev.email,
       }))
     }
-  }, [user, userProfile])
+  }, [user, userProfile, userSettings])
 
-  const handleSave = () => {
-    setSavedMessage('Settings saved successfully!')
-    setTimeout(() => setSavedMessage(''), 3000)
+  useEffect(() => {
+    if (!user || authLoading) return
+
+    // Subscribe to user settings in real-time
+    const unsubscribe = subscribeUserSettings(user.uid, (settings) => {
+      if (settings) {
+        setUserSettings(settings)
+        // Update theme if it differs
+        if (settings.preferences.theme !== theme) {
+          setTheme(settings.preferences.theme)
+        }
+        // Update language if it differs
+        if (settings.preferences.language !== language) {
+          setLanguage(settings.preferences.language)
+        }
+      } else {
+        // Create default settings if none exist
+        const defaultSettings: Omit<UserSettings, 'userId' | 'createdAt' | 'updatedAt'> = {
+          notifications: {
+            criticalAlerts: true,
+            warningAlerts: true,
+            dailySummary: false,
+            emailNotifications: true,
+          },
+          preferences: {
+            language: 'en',
+            theme: (theme as 'light' | 'dark' | 'system') || 'dark',
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          },
+          profile: {
+            fullName: userProfile?.name || user?.displayName || '',
+            phone: '',
+            location: '',
+            farmSize: undefined,
+            cropTypes: [],
+          },
+        }
+        createUserSettings(user.uid, defaultSettings)
+      }
+      setIsLoading(false)
+    })
+
+    return () => unsubscribe()
+  }, [user, theme, setTheme, language, userProfile, authLoading])
+
+  const handleSave = async () => {
+    if (!user || !userSettings) return
+
+    try {
+      await updateUserSettings(user.uid, {
+        notifications: userSettings.notifications,
+        preferences: {
+          ...userSettings.preferences,
+          theme: theme as 'light' | 'dark' | 'system',
+          language: language,
+        },
+        profile: {
+          ...userSettings.profile,
+          fullName: profile.fullName,
+          phone: profile.phone,
+        },
+      })
+      setSavedMessage('Settings saved successfully!')
+      setTimeout(() => setSavedMessage(''), 3000)
+    } catch (error) {
+      console.error('Error saving settings:', error)
+      setSavedMessage('Error saving settings. Please try again.')
+      setTimeout(() => setSavedMessage(''), 3000)
+    }
   }
 
   const handleLogoutClick = async () => {
@@ -77,12 +190,12 @@ export default function SettingsPage() {
       title: 'Notifications',
       description: 'Configure alert preferences',
       type: 'toggles',
-      toggleItems: [
-        { label: 'Critical Alerts', enabled: true },
-        { label: 'Warning Alerts', enabled: true },
-        { label: 'Daily Summary', enabled: false },
-        { label: 'Email Notifications', enabled: true },
-      ],
+      toggleItems: userSettings ? [
+        { label: 'Critical Alerts', enabled: userSettings.notifications.criticalAlerts },
+        { label: 'Warning Alerts', enabled: userSettings.notifications.warningAlerts },
+        { label: 'Daily Summary', enabled: userSettings.notifications.dailySummary },
+        { label: 'Email Notifications', enabled: userSettings.notifications.emailNotifications },
+      ] : [],
     },
     {
       icon: <Zap size={20} />,
@@ -171,25 +284,20 @@ export default function SettingsPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          {[
-            { label: 'Critical Alerts', enabled: true },
-            { label: 'Warning Alerts', enabled: true },
-            { label: 'Daily Summary', enabled: false },
-            { label: 'Email Notifications', enabled: true },
-          ].map((item) => (
+          {sections.find(s => s.type === 'toggles')?.toggleItems?.map((item) => (
             <div key={item.label} className="flex items-center justify-start gap-3 py-3 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 smooth-transition">
               <span className="text-slate-700 dark:text-slate-300 font-medium flex-1">{item.label}</span>
               <button
                 onClick={() => handleToggle(item.label)}
                 className={`relative w-14 h-7 rounded-full smooth-transition ${
-                  toggles[item.label as keyof typeof toggles]
+                  item.enabled
                     ? 'bg-cyan-500'
                     : 'bg-slate-300 dark:bg-slate-700'
                 }`}
               >
                 <div
                   className={`absolute top-1 w-5 h-5 bg-white rounded-full smooth-transition ${
-                    toggles[item.label as keyof typeof toggles]
+                    item.enabled
                       ? 'translate-x-7'
                       : 'translate-x-1'
                   }`}
@@ -253,7 +361,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => setLanguage('en')}
+                onClick={() => handleLanguageChange('en')}
                 className={`px-3 py-1 rounded-lg text-sm font-medium smooth-transition ${
                   language === 'en'
                     ? 'bg-cyan-500 text-white'
@@ -263,7 +371,7 @@ export default function SettingsPage() {
                 EN
               </button>
               <button
-                onClick={() => setLanguage('hi')}
+                onClick={() => handleLanguageChange('hi')}
                 className={`px-3 py-1 rounded-lg text-sm font-medium smooth-transition ${
                   language === 'hi'
                     ? 'bg-cyan-500 text-white'
