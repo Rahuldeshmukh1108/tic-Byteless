@@ -23,6 +23,9 @@ export function subscribeLiveData(
     } else {
       callback(null)
     }
+  }, (error) => {
+    console.error('[HydroSync] Firestore live data listener error:', error)
+    callback(null)
   })
 
   return unsubscribe
@@ -42,6 +45,9 @@ export function subscribeUserDevices(
       ...doc.data(),
     })) as Device[]
     callback(devices)
+  }, (error) => {
+    console.error('[HydroSync] Firestore user devices listener error:', error)
+    callback([])
   })
 
   return unsubscribe
@@ -61,6 +67,9 @@ export function subscribeUserAlerts(
       ...doc.data(),
     })) as Alert[]
     callback(alerts)
+  }, (error) => {
+    console.error('[HydroSync] Firestore user alerts listener error:', error)
+    callback([])
   })
 
   return unsubscribe
@@ -81,6 +90,9 @@ export function subscribeUnreadAlerts(
       ...doc.data(),
     })) as Alert[]
     callback(alerts)
+  }, (error) => {
+    console.error('[HydroSync] Firestore unread alerts listener error:', error)
+    callback([])
   })
 
   return unsubscribe
@@ -100,6 +112,9 @@ export function subscribeAutomationRules(
       ...doc.data(),
     })) as AutomationRule[]
     callback(rules)
+  }, (error) => {
+    console.error('[HydroSync] Firestore automation rules listener error:', error)
+    callback([])
   })
 
   return unsubscribe
@@ -123,6 +138,9 @@ export function subscribeAutomationRule(
     } else {
       callback(null)
     }
+  }, (error) => {
+    console.error('[HydroSync] Firestore automation rule listener error:', error)
+    callback(null)
   })
 
   return unsubscribe

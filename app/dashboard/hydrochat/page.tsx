@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { RefreshCcw, Send } from 'lucide-react'
+import { Send, Sparkles, Trash2, Robot, UserCircle } from 'lucide-react'
 
 interface ChatMessage {
   role: 'user' | 'bot'

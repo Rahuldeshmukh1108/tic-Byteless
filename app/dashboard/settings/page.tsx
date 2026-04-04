@@ -1,17 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useTheme } from 'next-themes'
 import { Bell, Lock, User, Zap, Shield, LogOut, Sun, Moon, Globe } from 'lucide-react'
+import { useAuth } from '@/contexts/auth-context'
+import { useAuthState } from '@/hooks/use-auth-state'
 
 export default function SettingsPage() {
+  const router = useRouter()
   const { theme, setTheme } = useTheme()
+  const { user, userProfile } = useAuth()
+  const { handleLogout } = useAuthState()
   const [language, setLanguage] = useState<'en' | 'hi'>('en')
   const [savedMessage, setSavedMessage] = useState('')
   const [profile, setProfile] = useState({
-    fullName: 'John Farmer',
-    email: 'john@hydrosync.com',
+    fullName: userProfile?.name || user?.displayName || 'John Farmer',
+    email: user?.email || 'john@hydrosync.com',
     phone: '+1 (555) 123-4567',
   })
 
@@ -30,9 +36,32 @@ export default function SettingsPage() {
     setProfile((prev) => ({ ...prev, [key]: value }))
   }
 
+  useEffect(() => {
+    if (userProfile) {
+      setProfile({
+        fullName: userProfile.name,
+        email: userProfile.email,
+        phone: userProfile.phone || '',
+      })
+    } else if (user) {
+      setProfile((prev) => ({
+        ...prev,
+        fullName: user.displayName || prev.fullName,
+        email: user.email || prev.email,
+      }))
+    }
+  }, [user, userProfile])
+
   const handleSave = () => {
     setSavedMessage('Settings saved successfully!')
     setTimeout(() => setSavedMessage(''), 3000)
+  }
+
+  const handleLogoutClick = async () => {
+    const success = await handleLogout()
+    if (success) {
+      router.push('/login')
+    }
   }
 
   const sections = [
@@ -289,7 +318,10 @@ export default function SettingsPage() {
         <button onClick={handleSave} className="w-fit px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-cyan-500/50 smooth-transition text-sm">
           Save Changes
         </button>
-        <button className="px-4 py-2.5 bg-red-500/20 border border-red-500/30 text-red-600 dark:text-red-400 rounded-lg font-semibold hover:bg-red-500/30 smooth-transition flex items-center gap-2 text-sm">
+        <button
+          onClick={handleLogoutClick}
+          className="px-4 py-2.5 bg-red-500/20 border border-red-500/30 text-red-600 dark:text-red-400 rounded-lg font-semibold hover:bg-red-500/30 smooth-transition flex items-center gap-2 text-sm"
+        >
           <LogOut size={18} />
           Logout
         </button>

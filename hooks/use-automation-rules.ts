@@ -4,12 +4,18 @@ import { AutomationRule } from '@/lib/firebase/firestore'
 import { subscribeAutomationRules, subscribeAutomationRule } from '@/lib/firebase/realtime'
 import { createAutomationRule, updateAutomationRule, deleteAutomationRule } from '@/lib/firebase/firestore'
 
-export function useAutomationRules(userId: string | null) {
+export function useAutomationRules(userId: string | null, authReady: boolean = true) {
   const [rules, setRules] = useState<AutomationRule[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!authReady) {
+      setRules([])
+      setIsLoading(true)
+      return
+    }
+
     if (!userId || !isConfigured) {
       setRules([])
       setIsLoading(false)
@@ -23,7 +29,7 @@ export function useAutomationRules(userId: string | null) {
     })
 
     return () => unsubscribe()
-  }, [userId])
+  }, [userId, authReady])
 
   const addRule = useCallback(
     async (ruleData: Omit<AutomationRule, 'id'>) => {

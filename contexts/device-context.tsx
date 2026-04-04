@@ -18,8 +18,9 @@ interface DeviceContextType {
 const DeviceContext = createContext<DeviceContextType | undefined>(undefined)
 
 export function DeviceProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth()
-  const { devices, isLoading, error, addDevice, updateDeviceInfo, removeDevice, clearError } = useDevices(user?.uid || null)
+  const { user, loading } = useAuth()
+  const authReady = !loading
+  const { devices, isLoading, error, addDevice, updateDeviceInfo, removeDevice, clearError } = useDevices(user?.uid || null, authReady)
 
   return (
     <DeviceContext.Provider
