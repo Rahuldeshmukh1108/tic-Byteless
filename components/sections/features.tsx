@@ -49,9 +49,6 @@ export function FeaturesSection() {
   return (
     <section id="features" className="py-16 sm:py-24 px-4 relative overflow-hidden">
       {/* Background Elements */}
-      <div className="absolute top-10 left-10 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Section Header */}
         <motion.div

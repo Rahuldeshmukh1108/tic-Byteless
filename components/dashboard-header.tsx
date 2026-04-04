@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { LogOut, Home, Globe, Menu, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { LogOut, Home, Globe } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
 import { useAuthState } from '@/hooks/use-auth-state'
 import { useAuth } from '@/contexts/auth-context'
@@ -39,6 +39,16 @@ export function DashboardHeader({ sidebarOpen, setSidebarOpen }: DashboardHeader
     <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-white/95 via-white/90 to-white/95 dark:from-slate-950/95 dark:via-slate-950/90 dark:to-slate-950/95 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 smooth-transition shadow-sm">
       <div className="h-20 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         <div className="flex items-center gap-3 sm:gap-4">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 smooth-transition hover:scale-105 transition-transform md:hidden"
+            aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+            aria-expanded={sidebarOpen}
+            aria-controls="dashboard-sidebar"
+          >
+            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+
           <div className="flex items-center gap-3 font-bold text-xl gradient-text hover:scale-102 transition-transform cursor-pointer">
             <img
               src="/logo.png"
