@@ -50,10 +50,12 @@ export default function AutomationPage() {
       tdsThreshold: preset.tds.min,
       tempMin: preset.temp.min,
       tempMax: preset.temp.max,
-      ldrThreshold: Math.round((preset.pH.min + preset.pH.max) / 2 * 10) / 10,
+      ldrThreshold: preset.ldrThreshold,
       pump1Duration: preset.pump1Duration,
       pump2Duration: preset.pump2Duration,
       pump3Duration: preset.pump3Duration,
+      dryCycleTime: preset.dryCycleDuration,
+      waterAbsorptionTime: preset.waterAbsorptionDuration,
     }))
 
     setSelectedCrop(preset.name)
