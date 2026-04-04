@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Send, Sparkles, Trash2, Bot, UserCircle, RefreshCcw } from 'lucide-react'
+import { Send, RefreshCcw } from 'lucide-react'
 
 interface ChatMessage {
   role: 'user' | 'bot'
@@ -49,7 +49,7 @@ export default function HydrochatPage() {
 
       const botMessage: ChatMessage = {
         role: 'bot',
-        text: data.message || 'No bot response.',
+        text: data.message || 'No response received.',
       }
       setChatMessages((prev) => [...prev, botMessage])
     } catch (err) {
@@ -70,35 +70,45 @@ export default function HydrochatPage() {
       className="space-y-6 min-h-screen max-h-screen overflow-hidden"
       style={{
         backgroundImage:
-          'radial-gradient(circle, rgba(0,0,0,0.08) 1px, transparent 1px), radial-gradient(circle, rgba(0,0,0,0.08) 1px, transparent 1px)',
+          'radial-gradient(circle, rgba(0,0,0,0.1) 1px, transparent 1px), radial-gradient(circle, rgba(0,0,0,0.1) 1px, transparent 1px)',
         backgroundSize: '20px 20px, 20px 20px',
         backgroundPosition: '0 0, 10px 10px',
       }}
     >
       <div className="text-center">
         <h1 className="text-4xl font-bold text-foreground dark:text-slate-100 mb-2">HydroChat AI</h1>
-        <p className="text-foreground/60 dark:text-slate-400">Ask for plant-specific nutrient thresholds and actuator values.</p>
+        <p className="text-foreground/60 dark:text-slate-400">
+          Enter a plant name to get a short description, automation parameters, and a cultivation recommendation.
+        </p>
       </div>
 
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       <div className="mx-auto max-w-4xl rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/80 shadow-lg overflow-hidden h-[calc(100vh-17rem)] md:h-[calc(100vh-15.5rem)]">
         <div className="flex h-full flex-col">
-          <div ref={chatContainerRef} className="relative flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 dark:bg-slate-950/40" style={{ scrollbarWidth: 'thin', scrollbarColor: '#0EA5E9 #E2E8F0' }}>
+          <div
+            ref={chatContainerRef}
+            className="relative flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 dark:bg-slate-950/40"
+            style={{ scrollbarWidth: 'thin', scrollbarColor: '#0EA5E9 #E2E8F0' }}
+          >
             {chatMessages.length === 0 ? (
               <div className="py-16 text-center text-slate-500 dark:text-slate-400">
-                No conversation yet. Ask a plant question below.
+                No conversation yet. Try a plant name like lettuce, basil, spinach, or tomato.
               </div>
             ) : (
               chatMessages.map((msg, index) => (
                 <div key={`${msg.role}-${index}`} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${
-                    msg.role === 'user'
-                      ? 'bg-cyan-500/15 text-cyan-900 dark:bg-cyan-500/20 dark:text-cyan-50'
-                      : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100'
-                  }`}>
+                  <div
+                    className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${
+                      msg.role === 'user'
+                        ? 'bg-cyan-500/15 text-cyan-900 dark:bg-cyan-500/20 dark:text-cyan-50'
+                        : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100'
+                    }`}
+                  >
                     <div className="flex items-start gap-2">
-                      <span className="mt-1 text-cyan-500">{msg.role === 'user' ? '👤' : '🤖'}</span>
+                      <span className="mt-1 text-xs font-semibold uppercase tracking-wide text-cyan-500">
+                        {msg.role === 'user' ? 'You' : 'AI'}
+                      </span>
                       <p className="text-sm whitespace-pre-wrap break-words">{msg.text}</p>
                     </div>
                   </div>
@@ -128,7 +138,7 @@ export default function HydrochatPage() {
                       fetchHydroData()
                     }
                   }}
-                  placeholder="   Type a plant name to get details..."
+                  placeholder="   Type a plant name like lettuce, basil, spinach, tomato..."
                   className="w-full min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 pl-16 pr-4 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 />
               </div>

@@ -2,10 +2,16 @@
 
 import { motion } from 'framer-motion'
 import { Activity, Wifi, WifiOff } from 'lucide-react'
-import type { DeviceStatus } from '@/lib/mock-data'
+
+interface DeviceStatusItem {
+  id: string
+  name: string
+  status: 'connected' | 'offline'
+  lastSynced: string
+}
 
 interface DeviceStatusProps {
-  devices: DeviceStatus[]
+  devices: DeviceStatusItem[]
 }
 
 export function DeviceStatus({ devices }: DeviceStatusProps) {

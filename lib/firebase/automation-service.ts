@@ -115,6 +115,7 @@ export async function createAutomationAlert(
 ) {
   try {
     await createAlert(userId, {
+      userId,
       message,
       type: severity,
       deviceId,

@@ -29,6 +29,16 @@ service cloud.firestore {
       match /automation/{ruleId} {
         allow read, write: if request.auth.uid == userId;
       }
+
+      // User settings
+      match /settings/{document=**} {
+        allow read, write: if request.auth.uid == userId;
+      }
+
+      // User dashboard metrics
+      match /metrics/{document=**} {
+        allow read, write: if request.auth.uid == userId;
+      }
     }
     
     // Devices collection - only accessible by the owning authenticated user

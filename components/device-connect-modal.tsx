@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { X, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
 import { Device } from '@/lib/firebase/firestore'
-import { connectDevice } from '@/lib/firebase/device-service'
+import { connectDevice, getDeviceConnectionStatus } from '@/lib/firebase/device-service'
 
 interface DeviceConnectModalProps {
   isOpen: boolean
@@ -27,24 +27,66 @@ export function DeviceConnectModal({
 }: DeviceConnectModalProps) {
   const [deviceName, setDeviceName] = useState('')
   const [deviceType, setDeviceType] = useState<Device['type']>('hydroponic')
-  const [deviceId, setDeviceId] = useState('')
+  const [deviceId, setDeviceId] = useState('device001')
   const [wifiSsid, setWifiSsid] = useState('')
   const [wifiPassword, setWifiPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [step, setStep] = useState<'form' | 'pairing'>('form')
+  const [deviceStatus, setDeviceStatus] = useState<{
+    existsInRealtimeDb: boolean
+    isAlreadyLinked: boolean
+  } | null>(null)
+  const [isCheckingDeviceId, setIsCheckingDeviceId] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!deviceName.trim()) {
-      setError('Please enter a device name')
+  useEffect(() => {
+    const trimmedDeviceId = deviceId.trim()
+    if (!trimmedDeviceId || !isOpen) {
+      setDeviceStatus(null)
       return
     }
 
-    if (!wifiSsid.trim()) {
-      setError('Please enter WiFi SSID')
+    let isCancelled = false
+    setIsCheckingDeviceId(true)
+
+    getDeviceConnectionStatus(trimmedDeviceId)
+      .then((status) => {
+        if (!isCancelled) {
+          setDeviceStatus(status)
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setDeviceStatus(null)
+        }
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsCheckingDeviceId(false)
+        }
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [deviceId, isOpen])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!deviceName.trim()) {
+      setError('Please enter a device name.')
+      return
+    }
+
+    if (!deviceId.trim()) {
+      setError('Please enter the hardware device ID from your ESP32 code, for example device001.')
+      return
+    }
+
+    if (deviceStatus?.isAlreadyLinked) {
+      setError('This hardware ID is already linked. Use a different device ID or unlink it first.')
       return
     }
 
@@ -53,44 +95,52 @@ export function DeviceConnectModal({
 
     try {
       setStep('pairing')
-      
-      // Simulate device pairing process with WiFi configuration
-      await new Promise(resolve => setTimeout(resolve, 3000))
 
-      // Connect device to user with WiFi credentials
-      const newDeviceId = await connectDevice(userId, {
+      await new Promise((resolve) => setTimeout(resolve, 1200))
+
+      const newDeviceId = await connectDevice(
         userId,
-        name: deviceName,
-        type: deviceType,
-        status: 'online',
-        wifiCredentials: {
-          ssid: wifiSsid,
-          password: wifiPassword,
-        }
-      })
+        {
+          userId,
+          name: deviceName,
+          type: deviceType,
+          status: 'online',
+          wifiCredentials: wifiSsid.trim()
+            ? {
+                ssid: wifiSsid,
+                password: wifiPassword,
+              }
+            : undefined,
+        },
+        deviceId
+      )
 
       setDeviceId(newDeviceId)
       setSuccess(true)
 
-      // Create device object for callback
       const newDevice: Device = {
         id: newDeviceId,
         userId,
         name: deviceName,
         type: deviceType,
         status: 'online',
+        wifiCredentials: wifiSsid.trim()
+          ? {
+              ssid: wifiSsid,
+              password: wifiPassword,
+            }
+          : undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
       }
 
-      // Notify parent component
       setTimeout(() => {
         onDeviceConnected(newDeviceId, newDevice)
         handleReset()
         onClose()
-      }, 2000)
+      }, 1800)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to connect device')
+      setError(err instanceof Error ? err.message : 'Failed to connect device.')
       setStep('form')
     } finally {
       setIsLoading(false)
@@ -100,12 +150,13 @@ export function DeviceConnectModal({
   const handleReset = () => {
     setDeviceName('')
     setDeviceType('hydroponic')
-    setDeviceId('')
+    setDeviceId('device001')
     setWifiSsid('')
     setWifiPassword('')
     setError(null)
     setSuccess(false)
     setStep('form')
+    setDeviceStatus(null)
   }
 
   if (!isOpen) return null
@@ -116,9 +167,8 @@ export function DeviceConnectModal({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6"
+        className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-lg w-full p-6"
       >
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
             {step === 'form' ? 'Connect New Device' : 'Pairing Device'}
@@ -134,7 +184,6 @@ export function DeviceConnectModal({
 
         {step === 'form' && !success ? (
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Error Alert */}
             {error && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -146,11 +195,12 @@ export function DeviceConnectModal({
               </motion.div>
             )}
 
-            {/* Device Name */}
+            <div className="rounded-lg border border-cyan-200 dark:border-cyan-500/20 bg-cyan-50 dark:bg-cyan-500/10 p-3 text-sm text-slate-700 dark:text-slate-300">
+              Use the exact same `deviceID` that is hardcoded in your ESP32 sketch. If your sketch says `String deviceID = "device001";`, enter `device001` here.
+            </div>
+
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                Device Name
-              </label>
+              <label className="text-sm font-medium text-slate-900 dark:text-slate-100">Device Name</label>
               <input
                 type="text"
                 value={deviceName}
@@ -161,11 +211,42 @@ export function DeviceConnectModal({
               />
             </div>
 
-            {/* Device Type */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                System Type
-              </label>
+              <label className="text-sm font-medium text-slate-900 dark:text-slate-100">Hardware Device ID</label>
+              <input
+                type="text"
+                value={deviceId}
+                onChange={(e) => setDeviceId(e.target.value)}
+                placeholder="e.g., device001"
+                disabled={isLoading}
+                className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 disabled:opacity-50"
+              />
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                This links the software to the real board publishing into Firebase.
+              </p>
+              {isCheckingDeviceId ? (
+                <p className="text-xs text-slate-500 dark:text-slate-400">Checking Firebase for this hardware ID...</p>
+              ) : deviceStatus ? (
+                <div
+                  className={`rounded-md px-3 py-2 text-xs ${
+                    deviceStatus.isAlreadyLinked
+                      ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300'
+                      : deviceStatus.existsInRealtimeDb
+                      ? 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300'
+                      : 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                  }`}
+                >
+                  {deviceStatus.isAlreadyLinked
+                    ? 'This hardware ID is already linked to a user account.'
+                    : deviceStatus.existsInRealtimeDb
+                    ? 'Hardware detected in Firebase. This is the ideal ID to link.'
+                    : 'Not detected in Firebase yet. You can still link it now, but the board must later publish using this exact ID.'}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-900 dark:text-slate-100">System Type</label>
               <select
                 value={deviceType}
                 onChange={(e) => setDeviceType(e.target.value as Device['type'])}
@@ -180,11 +261,12 @@ export function DeviceConnectModal({
               </select>
             </div>
 
-            {/* WiFi SSID */}
+            <div className="rounded-lg border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 p-3 text-xs text-slate-700 dark:text-slate-300">
+              WiFi fields below are only saved as reference inside the app. This form does not yet push WiFi credentials into the ESP32 automatically, so you still need to flash the board with the correct WiFi and Firebase values.
+            </div>
+
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                WiFi Network (SSID)
-              </label>
+              <label className="text-sm font-medium text-slate-900 dark:text-slate-100">WiFi Network (Optional)</label>
               <input
                 type="text"
                 value={wifiSsid}
@@ -195,11 +277,8 @@ export function DeviceConnectModal({
               />
             </div>
 
-            {/* WiFi Password */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                WiFi Password
-              </label>
+              <label className="text-sm font-medium text-slate-900 dark:text-slate-100">WiFi Password (Optional)</label>
               <input
                 type="password"
                 value={wifiPassword}
@@ -210,7 +289,6 @@ export function DeviceConnectModal({
               />
             </div>
 
-            {/* Actions */}
             <div className="flex gap-3 pt-4">
               <button
                 type="button"
@@ -222,7 +300,7 @@ export function DeviceConnectModal({
               </button>
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || deviceStatus?.isAlreadyLinked === true}
                 className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:bg-cyan-600/50 text-white rounded-lg font-medium flex items-center justify-center gap-2"
               >
                 {isLoading && <Loader2 size={18} className="animate-spin" />}
@@ -242,8 +320,8 @@ export function DeviceConnectModal({
               >
                 <div className="w-16 h-16 rounded-full border-4 border-cyan-200 dark:border-cyan-800 border-t-cyan-600 dark:border-t-cyan-400" />
               </motion.div>
-              <p className="mt-4 text-slate-600 dark:text-slate-400">Searching for your device...</p>
-              <p className="text-sm text-slate-500 dark:text-slate-500 mt-2">This may take a few moments</p>
+              <p className="mt-4 text-slate-600 dark:text-slate-400">Linking your app to hardware ID `{deviceId}`...</p>
+              <p className="text-sm text-slate-500 dark:text-slate-500 mt-2">Make sure the ESP32 is using the same device ID in code.</p>
             </div>
           </div>
         ) : null}
@@ -260,11 +338,9 @@ export function DeviceConnectModal({
               </motion.div>
               <p className="mt-4 text-slate-900 dark:text-slate-100 font-semibold">Device Connected!</p>
               <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
-                {deviceName} has been successfully connected to your account.
+                {deviceName} has been linked to your account.
               </p>
-              <p className="text-xs text-slate-500 dark:text-slate-500 mt-4">
-                Device ID: {deviceId}
-              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-500 mt-4">Device ID: {deviceId}</p>
             </div>
           </div>
         ) : null}

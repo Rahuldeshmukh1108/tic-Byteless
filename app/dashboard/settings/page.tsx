@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes'
 import { Bell, Lock, User, Zap, Shield, LogOut, Sun, Moon, Globe } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { useAuthState } from '@/hooks/use-auth-state'
-import { getUserSettings, updateUserSettings, createUserSettings } from '@/lib/firebase/firestore'
+import { updateUserSettings, createUserSettings } from '@/lib/firebase/firestore'
 import { subscribeUserSettings } from '@/lib/firebase/realtime'
 import { UserSettings } from '@/lib/firebase/firestore'
 
@@ -132,11 +132,12 @@ export default function SettingsPage() {
             fullName: userProfile?.name || user?.displayName || '',
             phone: '',
             location: '',
-            farmSize: undefined,
             cropTypes: [],
           },
         }
-        createUserSettings(user.uid, defaultSettings)
+        createUserSettings(user.uid, defaultSettings).catch((error) => {
+          console.error('Error creating default settings:', error)
+        })
       }
       setIsLoading(false)
     })
@@ -177,6 +178,13 @@ export default function SettingsPage() {
     }
   }
 
+  const notificationSettings = userSettings?.notifications ?? {
+    criticalAlerts: true,
+    warningAlerts: true,
+    dailySummary: false,
+    emailNotifications: true,
+  }
+
   const sections = [
     {
       icon: <User size={20} />,
@@ -191,10 +199,10 @@ export default function SettingsPage() {
       description: 'Configure alert preferences',
       type: 'toggles',
       toggleItems: userSettings ? [
-        { label: 'Critical Alerts', enabled: userSettings.notifications.criticalAlerts },
-        { label: 'Warning Alerts', enabled: userSettings.notifications.warningAlerts },
-        { label: 'Daily Summary', enabled: userSettings.notifications.dailySummary },
-        { label: 'Email Notifications', enabled: userSettings.notifications.emailNotifications },
+        { label: 'Critical Alerts', enabled: notificationSettings.criticalAlerts },
+        { label: 'Warning Alerts', enabled: notificationSettings.warningAlerts },
+        { label: 'Daily Summary', enabled: notificationSettings.dailySummary },
+        { label: 'Email Notifications', enabled: notificationSettings.emailNotifications },
       ] : [],
     },
     {

@@ -1,122 +1,85 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { updateLiveData, createReading } from '@/lib/firebase/firestore'
+import { createReading, updateLiveData } from '@/lib/firebase/firestore'
 
 export interface DeviceDataPayload {
   deviceId: string
   temperature: number
-  tds: number // Total Dissolved Solids in ppm
-  ldr: number // Light Dependent Resistor (0-100)
-  humidity: number
-  apiKey?: string // Optional API key for device authentication
+  tds: number
+  ldr?: number
+  light?: number
+  humidity?: number
+  pump1Status?: boolean
+  pump2Status?: boolean
+  pump3Status?: boolean
+  fanStatus?: boolean
+  growLightStatus?: boolean
+  apiKey?: string
 }
 
-/**
- * POST /api/devices/data
- * Receives sensor data from ESP32 devices and updates Firebase
- * 
- * Request body:
- * {
- *   "deviceId": "device_1234567890",
- *   "temperature": 22.5,
- *   "tds": 1200,
- *   "ldr": 78,
- *   "humidity": 65.3,
- *   "apiKey": "optional-device-api-key"
- * }
- * 
- * Response:
- * {
- *   "success": true,
- *   "message": "Data received and stored",
- *   "timestamp": "2024-01-15T10:30:00Z"
- * }
- */
+function asNumber(value: unknown, fallback: number = 0): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    
-    // Validate required fields
-    if (!body.deviceId) {
-      return NextResponse.json(
-        { error: 'Missing required field: deviceId' },
-        { status: 400 }
-      )
-    }
 
-    if (
-      body.temperature === undefined ||
-      body.tds === undefined ||
-      body.ldr === undefined ||
-      body.humidity === undefined
-    ) {
-      return NextResponse.json(
-        { error: 'Missing required sensor data fields' },
-        { status: 400 }
-      )
+    if (!body.deviceId) {
+      return NextResponse.json({ error: 'Missing required field: deviceId' }, { status: 400 })
     }
 
     const payload: DeviceDataPayload = {
-      deviceId: body.deviceId,
-      temperature: parseFloat(body.temperature),
-      tds: parseFloat(body.tds),
-      ldr: parseFloat(body.ldr),
-      humidity: parseFloat(body.humidity),
+      deviceId: String(body.deviceId),
+      temperature: asNumber(body.temperature),
+      tds: asNumber(body.tds),
+      ldr: asNumber(body.ldr ?? body.light),
+      light: asNumber(body.light ?? body.ldr),
+      humidity: asNumber(body.humidity, 0),
+      pump1Status: Boolean(body.pump1Status),
+      pump2Status: Boolean(body.pump2Status),
+      pump3Status: Boolean(body.pump3Status),
+      fanStatus: Boolean(body.fanStatus),
+      growLightStatus: Boolean(body.growLightStatus),
       apiKey: body.apiKey,
     }
 
-    // Validate data ranges
-    if (isNaN(payload.temperature) || isNaN(payload.tds) || isNaN(payload.ldr) || isNaN(payload.humidity)) {
-      return NextResponse.json(
-        { error: 'Invalid sensor data: values must be numbers' },
-        { status: 400 }
-      )
+    if (!Number.isFinite(payload.temperature) || !Number.isFinite(payload.tds)) {
+      return NextResponse.json({ error: 'temperature and tds must be numeric' }, { status: 400 })
     }
 
-    // Optional: Validate API key (implement your own validation logic)
-    // if (payload.apiKey !== process.env.DEVICE_API_KEY) {
-    //   return NextResponse.json(
-    //     { error: 'Unauthorized: Invalid API key' },
-    //     { status: 401 }
-    //   )
-    // }
+    const timestamp = new Date()
 
-    // Update live data
     await updateLiveData(payload.deviceId, {
       temperature: payload.temperature,
       tds: payload.tds,
-      ldr: payload.ldr,
-      humidity: payload.humidity,
-      pump1Status: false, // These will be set by automation functions
-      pump2Status: false,
-      fanStatus: false,
-      growLightStatus: false,
+      ldr: payload.ldr ?? payload.light ?? 0,
+      humidity: payload.humidity ?? 0,
+      timestamp,
+      pump1Status: payload.pump1Status ?? false,
+      pump2Status: payload.pump2Status ?? false,
+      pump3Status: payload.pump3Status ?? false,
+      fanStatus: payload.fanStatus ?? false,
+      growLightStatus: payload.growLightStatus ?? false,
     })
 
-    // Store reading in historical data
     await createReading(payload.deviceId, {
+      deviceId: payload.deviceId,
       temperature: payload.temperature,
       tds: payload.tds,
-      ldr: payload.ldr,
-      humidity: payload.humidity,
+      ldr: payload.ldr ?? payload.light ?? 0,
+      humidity: payload.humidity ?? 0,
+      timestamp,
     })
 
-    console.log('[HydroSync] Device data received:', {
-      deviceId: payload.deviceId,
-      timestamp: new Date().toISOString(),
-      ...payload,
+    return NextResponse.json({
+      success: true,
+      message: 'Device data stored successfully',
+      timestamp: timestamp.toISOString(),
     })
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'Data received and stored',
-        timestamp: new Date().toISOString(),
-      },
-      { status: 200 }
-    )
   } catch (error) {
     console.error('[HydroSync] Error processing device data:', error)
-    
+
     return NextResponse.json(
       {
         error: 'Failed to process device data',
@@ -127,39 +90,16 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * GET /api/devices/data
- * Returns current live data for a device
- * 
- * Query parameters:
- * - deviceId: ID of the device
- */
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const deviceId = searchParams.get('deviceId')
+  const { searchParams } = new URL(request.url)
+  const deviceId = searchParams.get('deviceId')
 
-    if (!deviceId) {
-      return NextResponse.json(
-        { error: 'Missing required parameter: deviceId' },
-        { status: 400 }
-      )
-    }
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'Use POST to submit device data. For GET requests, use your Firestore database directly.',
-      },
-      { status: 200 }
-    )
-  } catch (error) {
-    return NextResponse.json(
-      {
-        error: 'Failed to retrieve device data',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    )
+  if (!deviceId) {
+    return NextResponse.json({ error: 'Missing required parameter: deviceId' }, { status: 400 })
   }
+
+  return NextResponse.json({
+    success: true,
+    message: `POST sensor data for ${deviceId} to this endpoint, or let the ESP32 write directly to Firebase RTDB.`,
+  })
 }
