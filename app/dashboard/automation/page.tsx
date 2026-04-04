@@ -8,26 +8,28 @@ import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList, CommandI
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 interface ControlValues {
-  tdsMin: number
-  tdsMax: number
+  tdsThreshold: number
   tempMin: number
   tempMax: number
   ldrThreshold: number
   pump1Duration: number
   pump2Duration: number
   pump3Duration: number
+  dryCycleTime: number
+  waterAbsorptionTime: number
 }
 
 export default function AutomationPage() {
   const [controls, setControls] = useState<ControlValues>({
-    tdsMin: 200,
-    tdsMax: 1500,
+    tdsThreshold: 200,
     tempMin: 20,
     tempMax: 32,
     ldrThreshold: 50,
     pump1Duration: 30,
     pump2Duration: 45,
     pump3Duration: 60,
+    dryCycleTime: 5,
+    waterAbsorptionTime: 5,
   })
 
   const [selectedCrop, setSelectedCrop] = useState('')
@@ -45,8 +47,7 @@ export default function AutomationPage() {
 
     setControls((prev) => ({
       ...prev,
-      tdsMin: preset.tds.min,
-      tdsMax: preset.tds.max,
+      tdsThreshold: preset.tds.min,
       tempMin: preset.temp.min,
       tempMax: preset.temp.max,
       ldrThreshold: Math.round((preset.pH.min + preset.pH.max) / 2 * 10) / 10,
@@ -69,14 +70,15 @@ export default function AutomationPage() {
   }
 
   const sliderInputs = [
-    { label: 'TDS Min (ppm)', key: 'tdsMin' as const, min: 0, max: 500, unit: 'ppm' },
-    { label: 'TDS Max (ppm)', key: 'tdsMax' as const, min: 500, max: 2000, unit: 'ppm' },
+    { label: 'TDS Threshold (ppm)', key: 'tdsThreshold' as const, min: 0, max: 2000, unit: 'ppm' },
     { label: 'Temp Min (°C)', key: 'tempMin' as const, min: 0, max: 30, unit: '°C' },
     { label: 'Temp Max (°C)', key: 'tempMax' as const, min: 20, max: 50, unit: '°C' },
     { label: 'LDR Threshold', key: 'ldrThreshold' as const, min: 0, max: 1023, unit: '' },
     { label: 'Pump1 Duration (sec)', key: 'pump1Duration' as const, min: 10, max: 300, unit: 's' },
     { label: 'Pump2 Duration (sec)', key: 'pump2Duration' as const, min: 5, max: 300, unit: 's' }, // changed 10 -> 5
     { label: 'Pump3 Duration (sec)', key: 'pump3Duration' as const, min: 10, max: 300, unit: 's' },
+    { label: 'Dry Cycle Time (min)', key: 'dryCycleTime' as const, min: 5, max: 240, unit: 'min' },
+    { label: 'Water Absorption Time (min)', key: 'waterAbsorptionTime' as const, min: 5, max: 240, unit: 'min' },
   ]
 
   return (
