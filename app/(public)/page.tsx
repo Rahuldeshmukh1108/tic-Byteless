@@ -9,9 +9,21 @@ export default function HomePage() {
     <main className="min-h-screen bg-background">
       <Navbar />
       <HeroSection />
-      <FeaturesSection />
-      <BenefitsSection />
-      <CTASection />
+      <div className="relative overflow-hidden">
+        <div
+          className="absolute inset-0 pointer-events-none opacity-60"
+          style={{
+            backgroundImage: 'radial-gradient(rgba(148, 163, 184, 0.28) 1.4px, transparent 1.4px)',
+            backgroundSize: '18px 18px',
+            backgroundPosition: '9px 9px',
+          }}
+        />
+        <div className="relative z-10">
+          <FeaturesSection />
+          <BenefitsSection />
+          <CTASection />
+        </div>
+      </div>
     </main>
   )
 }

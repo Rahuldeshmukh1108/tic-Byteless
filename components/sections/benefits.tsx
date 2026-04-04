@@ -42,11 +42,6 @@ export function BenefitsSection() {
 
   return (
     <section id="benefits" className="py-16 sm:py-24 px-4 relative">
-      {/* Background Gradient */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-transparent dark:via-white/5" />
-      </div>
-
       <div className="max-w-7xl mx-auto">
         {/* Section Header */}
         <motion.div
