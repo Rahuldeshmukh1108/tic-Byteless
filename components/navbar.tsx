@@ -2,22 +2,21 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, Globe } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { ThemeToggle } from './theme-toggle'
 
 // Navbar component with hydration-safe theme toggle
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
-  const [language, setLanguage] = useState<'en' | 'hi'>('en')
+  const [language] = useState<'en' | 'hi'>('en')
 
   const toggleMenu = () => setIsOpen(!isOpen)
-  const toggleLanguage = () => setLanguage(language === 'en' ? 'hi' : 'en')
 
   const navLinks = [
     { name: language === 'en' ? 'Features' : 'विशेषताएं', href: '#features' },
     { name: language === 'en' ? 'Benefits' : 'लाभ', href: '#benefits' },
-    { name: language === 'en' ? 'Pricing' : 'मूल्य निर्धारण', href: '#pricing' },
+    // { name: language === 'en' ? 'Pricing' : 'मूल्य निर्धारण', href: '#pricing' },
   ]
 
   return (
@@ -50,16 +49,6 @@ export function Navbar() {
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-4">
-            {/* Language Toggle */}
-            <button
-              onClick={toggleLanguage}
-              className="p-2.5 rounded-xl hover:bg-white/10 dark:hover:bg-white/5 smooth-transition hover:scale-105 transition-transform flex items-center gap-1.5"
-              aria-label="Toggle language"
-            >
-              <Globe size={18} />
-              <span className="text-sm font-medium hidden sm:inline">{language.toUpperCase()}</span>
-            </button>
-
             {/* Theme Toggle */}
             <ThemeToggle />
 

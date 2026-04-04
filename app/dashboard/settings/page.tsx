@@ -266,7 +266,7 @@ export default function SettingsPage() {
         </div>
       </motion.div>
 
-      {/* Notifications */}
+      {/* Notifications
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -306,7 +306,7 @@ export default function SettingsPage() {
             </div>
           ))}
         </div>
-      </motion.div>
+      </motion.div> */}
 
       {/* Preferences */}
       <motion.div
@@ -385,7 +385,7 @@ export default function SettingsPage() {
         </div>
       </motion.div>
 
-      {/* Security */}
+      {/* Security
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -414,7 +414,7 @@ export default function SettingsPage() {
             2FA Setup
           </button>
         </div>
-      </motion.div>
+      </motion.div> */}
 
       {/* Logout */}
       <motion.div
